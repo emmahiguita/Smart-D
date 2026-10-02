@@ -6,7 +6,7 @@
     android:id="@+id/deviceDetailRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#030711"
+    android:background="@drawable/bg_ios_ambient_canvas"
     android:fitsSystemWindows="true"
     tools:context=".DeviceDetailActivity">
 
@@ -17,9 +17,12 @@
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_ios_glass_pill"
         android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="8dp"
+        android:paddingVertical="10dp"
         app:layout_constraintTop_toTopOf="parent">
 
         <!-- Botón Volver Circular Glass -->
@@ -159,9 +162,9 @@
             <LinearLayout
                 android:id="@+id/systemMetrics"
                 android:layout_width="match_parent"
-                android:layout_height="72dp"
+                android:layout_height="76dp"
                 android:layout_marginTop="18dp"
-                android:background="@drawable/bg_glass_metrics"
+                android:background="@drawable/bg_ios_live_activity"
                 android:baselineAligned="false"
                 android:gravity="center"
                 android:orientation="horizontal"

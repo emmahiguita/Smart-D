@@ -5,35 +5,37 @@
     android:id="@+id/donate_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#030711"
+    android:background="@drawable/bg_ios_ambient_canvas"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
     tools:context=".DonateActivity">
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- HEADER: Botón Circular Glass Volver + Título & Subtítulo       -->
+    <!-- HEADER: Cápsula Flotante Glass iOS · Volver + Título            -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/donateHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#080E18"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_ios_glass_pill"
         android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
+        android:paddingVertical="10dp">
 
         <com.limelight.ui.glass.LiquidGlassCircleLayout
             android:id="@+id/btnClose"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:contentDescription="@string/settings_back"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:layout_gravity="center"
                 android:contentDescription="@string/settings_back"
                 android:src="@drawable/ic_back_arrow"
@@ -57,7 +59,7 @@
                 android:includeFontPadding="false"
                 android:text="@string/nav_donate"
                 android:textColor="#F8FAFC"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -66,18 +68,13 @@
                 android:layout_marginTop="2dp"
                 android:fontFamily="@font/roboto"
                 android:includeFontPadding="false"
-                android:text="Apoya el Desarrollo de SmartDisplay AI"
+                android:text="Apoya el desarrollo y mejoras continuas"
                 android:textColor="#94A3B8"
-                android:textSize="12sp" />
+                android:textSize="11.5sp" />
 
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#1578A6D8" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"

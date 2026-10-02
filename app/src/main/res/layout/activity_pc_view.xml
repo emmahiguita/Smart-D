@@ -9,11 +9,11 @@
     android:fitsSystemWindows="true"
     tools:context=".PcView">
 
-    <!-- Contenedor Principal con Fondo Oscuro / Tonal del Tema -->
+    <!-- Contenedor Principal con Lienzo de Cristal Ambiental OLED -->
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?android:attr/colorBackground">
+        android:background="@drawable/bg_ios_ambient_canvas">
 
         <!-- Animación de lluvia (solo tema Lluvia) -->
         <com.limelight.ui.RainView
@@ -32,7 +32,7 @@
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:fillViewport="true"
-            android:paddingTop="48dp">
+            android:paddingTop="66dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -43,241 +43,267 @@
                 android:paddingTop="0dp"
                 android:paddingBottom="20dp">
 
-                <!-- 1. Icono / Glifo del PC Activo -->
+                <!-- ═══════════════════════════════════════════════════════════ -->
+                <!-- HERO DYNAMIC ISLAND / LIVE ACTIVITY (Apple iOS 18 Style)   -->
+                <!-- ═══════════════════════════════════════════════════════════ -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/pcGlyphCard"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
-                    android:layout_marginTop="2dp"
-                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-                    app:cardCornerRadius="19dp"
+                    android:id="@+id/hero_live_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="10dp"
+                    app:cardBackgroundColor="@null"
+                    app:cardCornerRadius="26dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="?attr/colorPrimary"
-                    app:strokeWidth="1.2dp">
-
-                    <ImageView
-                        android:id="@+id/hero_pc_icon"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_gravity="center"
-                        android:contentDescription="@string/device_icon_desc"
-                        android:src="@drawable/ic_computer"
-                        app:tint="?attr/colorPrimary" />
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- 2. Nombre del PC Principal ("EMMA") -->
-                <TextView
-                    android:id="@+id/hero_pc_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:fontFamily="@font/roboto"
-                    android:text="EMMA"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="17sp"
-                    android:textStyle="bold"
-                    tools:text="EMMA" />
-
-                <!-- 3. Indicador de Estado ("Disponible" / "En línea") -->
-                <LinearLayout
-                    android:id="@+id/statusContainer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="1dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <View
-                        android:id="@+id/header_status_dot"
-                        android:layout_width="7dp"
-                        android:layout_height="7dp"
-                        android:background="@drawable/bg_green_dot" />
-
-                    <TextView
-                        android:id="@+id/hero_status_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="5dp"
-                        android:fontFamily="@font/roboto"
-                        android:text="Disponible"
-                        android:textColor="?attr/colorPrimary"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        tools:text="Disponible" />
-
-                    <TextView
-                        android:id="@+id/header_network_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="5dp"
-                        android:fontFamily="@font/roboto"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="11sp"
-                        android:visibility="gone"
-                        tools:text="Wi-Fi" />
-                </LinearLayout>
-
-                <!-- 4. Cápsula Pequeña de Telemetría (8 ms Latencia | 60 FPS Fluidez) -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/performanceCapsule"
-                    style="@style/Widget.Material3.CardView.Filled"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-                    app:cardCornerRadius="14dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="?attr/colorOutlineVariant"
-                    app:strokeWidth="1dp">
+                    app:strokeWidth="0dp">
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="3dp">
+                        android:background="@drawable/bg_ios_live_activity"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="16dp"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp">
 
-                        <!-- Item Latencia -->
-                        <ImageView
-                            android:layout_width="12dp"
-                            android:layout_height="12dp"
-                            android:contentDescription="Latencia"
-                            android:src="@drawable/ic_stat_ping"
-                            app:tint="?attr/colorPrimary" />
+                        <!-- Fila Superior: Badge PC + Nombre + Estado + Telemetría -->
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
 
-                        <TextView
-                            android:id="@+id/capsuleLatencyText"
+                            <!-- Icono / Glifo del PC Activo -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/pcGlyphCard"
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
+                                android:layout_alignParentStart="true"
+                                android:layout_centerVertical="true"
+                                app:cardBackgroundColor="@null"
+                                app:cardCornerRadius="13dp"
+                                app:cardElevation="0dp"
+                                app:strokeWidth="0dp">
+
+                                <ImageView
+                                    android:id="@+id/hero_pc_icon"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:background="@drawable/bg_ios_badge_squircle"
+                                    android:contentDescription="@string/device_icon_desc"
+                                    android:padding="8dp"
+                                    android:src="@drawable/ic_computer"
+                                    app:tint="#0A84FF" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <!-- Nombre y Estado en columna -->
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_centerVertical="true"
+                                android:layout_marginStart="10dp"
+                                android:layout_toEndOf="@id/pcGlyphCard"
+                                android:layout_toStartOf="@+id/performanceCapsule"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/hero_pc_name"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/roboto"
+                                    android:maxLines="1"
+                                    android:text="EMMA"
+                                    android:textColor="#F5F5F7"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    android:letterSpacing="-0.02"
+                                    tools:text="EMMA" />
+
+                                <LinearLayout
+                                    android:id="@+id/statusContainer"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="1dp"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <View
+                                        android:id="@+id/header_status_dot"
+                                        android:layout_width="7dp"
+                                        android:layout_height="7dp"
+                                        android:background="@drawable/bg_green_dot" />
+
+                                    <TextView
+                                        android:id="@+id/hero_status_text"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="5dp"
+                                        android:fontFamily="@font/roboto"
+                                        android:text="Disponible"
+                                        android:textColor="#30D158"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold"
+                                        tools:text="Disponible" />
+
+                                    <TextView
+                                        android:id="@+id/header_network_text"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="5dp"
+                                        android:fontFamily="@font/roboto"
+                                        android:textColor="#8E8E93"
+                                        android:textSize="11sp"
+                                        android:visibility="gone"
+                                        tools:text="Wi-Fi" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Cápsula de Telemetría (Ping + FPS) Estilo iOS -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/performanceCapsule"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                app:cardBackgroundColor="#47141C2B"
+                                app:cardCornerRadius="14dp"
+                                app:cardElevation="0dp"
+                                app:strokeColor="#59FFFFFF"
+                                app:strokeWidth="1.2dp">
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp">
+
+                                    <ImageView
+                                        android:layout_width="12dp"
+                                        android:layout_height="12dp"
+                                        android:contentDescription="Latencia"
+                                        android:src="@drawable/ic_stat_ping"
+                                        app:tint="#30D158" />
+
+                                    <TextView
+                                        android:id="@+id/capsuleLatencyText"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="4dp"
+                                        android:fontFamily="@font/roboto"
+                                        android:text="8 ms"
+                                        android:textColor="#F5F5F7"
+                                        android:textSize="10sp"
+                                        android:textStyle="bold"
+                                        tools:text="8 ms" />
+
+                                    <View
+                                        android:layout_width="1dp"
+                                        android:layout_height="10dp"
+                                        android:layout_marginHorizontal="6dp"
+                                        android:background="#2EFFFFFF" />
+
+                                    <ImageView
+                                        android:layout_width="12dp"
+                                        android:layout_height="12dp"
+                                        android:contentDescription="Fluidez"
+                                        android:src="@drawable/ic_fps"
+                                        app:tint="#0A84FF" />
+
+                                    <TextView
+                                        android:id="@+id/capsuleFpsText"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="4dp"
+                                        android:fontFamily="@font/roboto"
+                                        android:text="60 FPS"
+                                        android:textColor="#F5F5F7"
+                                        android:textSize="10sp"
+                                        android:textStyle="bold"
+                                        tools:text="60 FPS" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+
+                        </RelativeLayout>
+
+                        <!-- Botón Circular Central INICIAR (LiquidStartButton) -->
+                        <FrameLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:fontFamily="@font/roboto"
-                            android:text="8 ms"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            tools:text="8 ms" />
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="10dp">
 
-                        <TextView
+                            <com.limelight.ui.effects.LiquidStartButton
+                                android:id="@+id/liquidStartButton"
+                                android:layout_width="118dp"
+                                android:layout_height="118dp"
+                                android:layout_gravity="center"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:contentDescription="Iniciar conexión" />
+                        </FrameLayout>
+
+                        <!-- Chip de Última Conexión estilo iOS Pill -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/last_session_card"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="2dp"
-                            android:fontFamily="@font/roboto"
-                            android:text="Latencia"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="9sp" />
+                            android:layout_marginTop="2dp"
+                            android:layout_marginBottom="2dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:visibility="gone"
+                            app:cardBackgroundColor="#47141C2B"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="#59FFFFFF"
+                            app:strokeWidth="1.2dp"
+                            tools:visibility="visible">
 
-                        <!-- Separador vertical -->
-                        <View
-                            android:layout_width="1dp"
-                            android:layout_height="10dp"
-                            android:layout_marginHorizontal="8dp"
-                            android:background="?attr/colorOutlineVariant" />
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="12dp"
+                                android:paddingVertical="4dp">
 
-                        <!-- Item FPS -->
-                        <ImageView
-                            android:layout_width="12dp"
-                            android:layout_height="12dp"
-                            android:contentDescription="Fluidez"
-                            android:src="@drawable/ic_fps"
-                            app:tint="?attr/colorPrimary" />
+                                <TextView
+                                    android:id="@+id/last_session_title"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/roboto"
+                                    android:text="Última sesión:"
+                                    android:textColor="#8E8E93"
+                                    android:textSize="10sp"
+                                    tools:text="Última sesión:" />
 
-                        <TextView
-                            android:id="@+id/capsuleFpsText"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:fontFamily="@font/roboto"
-                            android:text="60 FPS"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            tools:text="60 FPS" />
+                                <TextView
+                                    android:id="@+id/last_session_subtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="4dp"
+                                    android:fontFamily="@font/roboto"
+                                    android:text="Escritorio"
+                                    android:textColor="#0A84FF"
+                                    android:textSize="10sp"
+                                    android:textStyle="bold"
+                                    tools:text="Escritorio" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="2dp"
-                            android:fontFamily="@font/roboto"
-                            android:text="Fluidez"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="9sp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- 5. Gran Botón Circular Central INICIAR (LiquidStartButton) -->
-                <FrameLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="4dp">
-
-                    <com.limelight.ui.effects.LiquidStartButton
-                        android:id="@+id/liquidStartButton"
-                        android:layout_width="118dp"
-                        android:layout_height="118dp"
-                        android:layout_gravity="center"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:contentDescription="Iniciar conexión" />
-                </FrameLayout>
-
-                <!-- 6. Chip de Última Conexión -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/last_session_card"
-                    style="@style/Widget.Material3.CardView.Filled"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:layout_marginBottom="6dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:visibility="gone"
-                    app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                    app:cardCornerRadius="14dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="?attr/colorOutlineVariant"
-                    app:strokeWidth="1dp"
-                    tools:visibility="visible">
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="4dp">
-
-                        <TextView
-                            android:id="@+id/last_session_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/roboto"
-                            android:text="Última sesión:"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="10sp"
-                            tools:text="Última sesión:" />
-
-                        <TextView
-                            android:id="@+id/last_session_subtitle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:fontFamily="@font/roboto"
-                            android:text="Escritorio"
-                            android:textColor="?attr/colorPrimary"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            tools:text="Escritorio" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- 7. Encabezado Sección "Mis equipos" -->
+                <!-- 7. Encabezado Sección "Mis equipos" estilo Apple Inset Grouped -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:layout_marginBottom="6dp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginHorizontal="2dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -287,22 +313,27 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:fontFamily="@font/roboto"
-                        android:text="@string/pcview_your_computers"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:text="MIS EQUIPOS"
+                        android:textColor="#8E8E93"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnAddPcQuick"
                         style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
+                        android:minHeight="36dp"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="0dp"
                         android:text="@string/nav_add_pc"
-                        android:textColor="?attr/colorPrimary"
-                        android:textSize="12sp"
+                        android:textColor="#0A84FF"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold"
                         app:icon="@drawable/ic_add"
                         app:iconSize="16dp"
-                        app:iconTint="?attr/colorPrimary" />
+                        app:iconTint="#0A84FF" />
                 </LinearLayout>
 
                 <!-- 8. Lista de Dispositivos (RecyclerView) -->
@@ -375,29 +406,31 @@
         </androidx.core.widget.NestedScrollView>
 
         <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- HEADER FLOTANTE TRANSLÚCIDO: Menú (izq) · SmartDisplay · + (der) -->
+        <!-- HEADER FLOTANTE DYNAMIC PILL (Apple iOS 18 Glass)              -->
         <!-- ═══════════════════════════════════════════════════════════════ -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/header"
             android:layout_width="match_parent"
-            android:layout_height="46dp"
+            android:layout_height="50dp"
             android:layout_gravity="top"
-            android:background="@drawable/bg_floating_header_glass"
-            android:elevation="6dp"
-            android:paddingHorizontal="10dp">
+            android:layout_marginHorizontal="14dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_glass_pill"
+            android:elevation="10dp"
+            android:paddingHorizontal="8dp">
 
             <!-- Botón Menú Lateral -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/menuButton"
                 style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/nav_manual"
                 app:icon="@drawable/ic_menu"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
-                app:iconSize="20dp"
-                app:iconTint="?attr/colorOnSurface"
+                app:iconSize="18dp"
+                app:iconTint="#FFFFFF"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -419,32 +452,34 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/roboto"
                     android:text="Smart"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="-0.02" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/roboto"
                     android:text="Display"
-                    android:textColor="?attr/colorPrimary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textColor="#0A84FF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="-0.02" />
             </LinearLayout>
 
             <!-- Botón Agregar PC Flotante (+) -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_add_pc_top"
                 style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/add_computer"
                 app:icon="@drawable/ic_add"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="20dp"
-                app:iconTint="?attr/colorOnSurface"
+                app:iconTint="#FFFFFF"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -467,6 +502,7 @@
 
     <!-- Barra Lateral Delgada con Iconos (Slim Icon Navigation Rail) -->
     <include
+        android:id="@+id/slim_nav_rail"
         layout="@layout/layout_slim_nav_rail"
         android:layout_width="72dp"
         android:layout_height="match_parent"

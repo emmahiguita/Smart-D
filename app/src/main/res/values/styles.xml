@@ -302,14 +302,18 @@
         <item name="cornerSize">24dp</item>
     </style>
 
-    <style name="TextAppearance.SD.DialogTitle" parent="TextAppearance.Material3.TitleLarge">
+    <style name="TextAppearance.SD.DialogTitle" parent="MaterialAlertDialog.Material3.Title.Text">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:fontFamily">@font/roboto</item>
         <item name="android:textColor">#F8FAFC</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">20sp</item>
     </style>
 
-    <style name="TextAppearance.SD.DialogBody" parent="TextAppearance.Material3.BodyMedium">
+    <style name="TextAppearance.SD.DialogBody" parent="MaterialAlertDialog.Material3.Body.Text">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:fontFamily">@font/roboto</item>
         <item name="android:textColor">#CBD5E1</item>
         <item name="android:textSize">14sp</item>
@@ -331,7 +335,6 @@
     </style>
 
     <style name="ThemeOverlay.SmartDisplay.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
-        <item name="android:background">@drawable/bg_dialog_glass</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.SmartDisplay.Dialog</item>
         <item name="materialAlertDialogTitleTextStyle">@style/TextAppearance.SD.DialogTitle</item>
         <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.SD.DialogBody</item>
@@ -341,6 +344,19 @@
         <item name="buttonBarPositiveButtonStyle">@style/Widget.SmartDisplay.DialogButton</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.SmartDisplay.DialogButton.Text</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.SmartDisplay.DialogButton.Text</item>
+    </style>
+
+    <!-- ── BOTTOM SHEET · Modo Claro ────────────────────────────────────── -->
+    <!-- Garantiza superficies blancas/grises en modo Claro Expressive.
+         Sin este overlay, Material3 puede usar colores oscuros del tema padre,
+         causando fondo negro en BottomSheetDialog al estar en modo luz. -->
+    <style name="ThemeOverlay.SmartDisplay.BottomSheet.Light" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="android:colorBackground">#F8F9FE</item>
+        <item name="colorSurface">#FCFCFF</item>
+        <item name="colorSurfaceContainer">#ECEDF5</item>
+        <item name="colorOnSurface">#191C20</item>
+        <item name="colorOnSurfaceVariant">#434751</item>
+        <item name="colorOutlineVariant">#C3C6D2</item>
     </style>
 
 </resources>

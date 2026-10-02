@@ -1,33 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  glass3d_panel_bg.xml — Superficie Obsidian Liquid Glass 3D con refracción cáustica.
-  Capa base translúcida obsidiana + sheen superior cian/diamante.
+  glass3d_panel_bg.xml — Superficie Obsidian Liquid Glass 3D estilo Apple VisionOS.
+  Capa base translúcida obsidiana + bisel especular superior blanco + micro-halo cian zafiro.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Capa base: translúcida obsidiana + borde de cristal refractivo -->
+    <!-- Capa 1: Fondo base de cristal translúcido oscuro -->
     <item>
         <shape android:shape="rectangle">
-            <gradient
-                android:angle="270"
-                android:startColor="#E6080E18"
-                android:endColor="#F2030711" />
             <corners android:radius="24dp" />
-            <stroke
-                android:width="1.2dp"
-                android:color="#3378A6D8" />
+            <solid android:color="#E6070B14" />
         </shape>
     </item>
 
-    <!-- Sheen superior: brillo cristalino cian que se desvanece = profundidad 3D -->
+    <!-- Capa 2: Superficie de cristal refractivo con bisel especular -->
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:centerColor="#0D7DDAFF"
-                android:endColor="#00000000"
-                android:startColor="#267DDAFF" />
+                android:startColor="#33243552"
+                android:centerColor="#1F152033"
+                android:endColor="#140E1422" />
             <corners android:radius="24dp" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#59FFFFFF" />
         </shape>
     </item>
+
+    <!-- Capa 3: Micro-borde etéreo interior zafiro -->
+    <item android:top="1dp" android:left="1dp" android:right="1dp" android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="23dp" />
+            <stroke
+                android:width="0.8dp"
+                android:color="#2B0A84FF" />
+        </shape>
+    </item>
+
 </layer-list>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_ios_sheet_canvas"
+    android:orientation="vertical"
+    android:paddingBottom="32dp">
+
+    <!-- Indicador superior de arrastre estilo iOS -->
+    <View
+        android:layout_width="38dp"
+        android:layout_height="4.5dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_bottom_sheet_handle" />
+
+    <!-- Encabezado del BottomSheet -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:cardBackgroundColor="#141E2C"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#3378A6D8"
+            app:strokeWidth="1dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_logs"
+                app:tint="#7DDAFF" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/roboto"
+                android:text="Registros del Sistema"
+                android:textColor="#F8FAFC"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:fontFamily="@font/roboto"
+                android:text="Telemetría técnica del host y hardware"
+                android:textColor="#94A3B8"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Tarjeta Glass con el volcado de telemetría y registros -->
+    <com.limelight.ui.glass.IosGlassCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/txt_log_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:lineSpacingExtra="4dp"
+                android:textColor="#E2E8F0"
+                android:textSize="12.5sp"
+                android:textIsSelectable="true"
+                tools:text="Dispositivo: OnePlus CPH2557\nAndroid: 14 (API 34)\nABI: arm64-v8a\nVersión app: v2.6.0\nGPU: Adreno (TM) 750\nPCs detectados: 1" />
+        </LinearLayout>
+    </com.limelight.ui.glass.IosGlassCardView>
+
+    <!-- Botones de Acción -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_copy_logs"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_ios_glass_button_secondary"
+            android:stateListAnimator="@animator/card_press_scale"
+            android:text="Copiar Registros"
+            android:textColor="#F8FAFC"
+            android:textSize="13.5sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null"
+            app:cornerRadius="14dp"
+            app:icon="@drawable/ic_copy"
+            app:iconSize="18dp"
+            app:iconTint="#7DDAFF" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_close_logs"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="100dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_ios_glass_button_secondary"
+            android:stateListAnimator="@animator/card_press_scale"
+            android:text="Cerrar"
+            android:textColor="#94A3B8"
+            android:textSize="13.5sp"
+            app:backgroundTint="@null"
+            app:cornerRadius="14dp" />
+    </LinearLayout>
+
+</LinearLayout>

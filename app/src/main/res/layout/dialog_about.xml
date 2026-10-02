@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_ios_sheet_canvas"
+    android:orientation="vertical"
+    android:paddingBottom="36dp">
+
+    <!-- Handle superior iOS -->
+    <View
+        android:layout_width="38dp"
+        android:layout_height="4.5dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_bottom_sheet_handle" />
+
+    <!-- Logo central y versión -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            app:cardBackgroundColor="#141E2C"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#4D7DDAFF"
+            app:strokeWidth="1.5dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@mipmap/ic_launcher" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="@font/roboto"
+            android:text="@string/app_label"
+            android:textColor="#F8FAFC"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txt_about_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:background="@drawable/bg_status_chip"
+            android:fontFamily="@font/roboto"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="3dp"
+            android:textColor="#7DDAFF"
+            android:textSize="11.5sp"
+            android:textStyle="bold"
+            tools:text="Versión 2.6.0 (2026 Edition)" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/roboto"
+            android:gravity="center"
+            android:text="@string/nav_app_subtitle"
+            android:textColor="#94A3B8"
+            android:textSize="12.5sp" />
+    </LinearLayout>
+
+    <!-- Características Principales -->
+    <com.limelight.ui.glass.IosGlassCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/roboto"
+                android:text="CARACTERÍSTICAS DEL SISTEMA"
+                android:textColor="#7DDAFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@font/roboto"
+                android:lineSpacingExtra="3dp"
+                android:text="• Transmisión 60/120 FPS de latencia ultra baja\n• Diseño iOS Liquid Glass hiperrealista 2026\n• Inyección universal de temas OLED dinámica\n• AirDrop / Continuity para archivos WiFi\n• Superposición táctil AI y Windows Taskbar"
+                android:textColor="#E2E8F0"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </com.limelight.ui.glass.IosGlassCardView>
+
+    <!-- Créditos de Código Abierto -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@font/roboto"
+        android:gravity="center"
+        android:text="Basado en el motor de Moonlight Game Streaming (GPL v3).\nOptimizado con arquitectura nativa Kotlin y shaders de última generación."
+        android:textColor="#64748B"
+        android:textSize="11.5sp" />
+
+    <!-- Botón Cerrar -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_close_about"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_ios_glass_button_secondary"
+        android:stateListAnimator="@animator/card_press_scale"
+        android:text="Entendido"
+        android:textColor="#F8FAFC"
+        android:textSize="13.5sp"
+        android:textStyle="bold"
+        app:backgroundTint="@null"
+        app:cornerRadius="14dp" />
+
+</LinearLayout>

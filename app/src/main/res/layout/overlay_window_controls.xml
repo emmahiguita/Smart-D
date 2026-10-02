@@ -66,6 +66,7 @@
                     android:padding="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="#FFFFFF"
+                    android:contentDescription="Minimizar ventana"
                     android:clickable="true"
                     android:focusable="true"/>
 
@@ -80,6 +81,7 @@
                     android:padding="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="#FFFFFF"
+                    android:contentDescription="Maximizar ventana"
                     android:clickable="true"
                     android:focusable="true"/>
 
@@ -94,6 +96,7 @@
                     android:padding="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="#FFFFFF"
+                    android:contentDescription="Cerrar ventana"
                     android:clickable="true"
                     android:focusable="true"/>
 
@@ -108,6 +111,7 @@
                     android:padding="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="#FFFFFF"
+                    android:contentDescription="Cambiar aplicación (Alt+Tab)"
                     android:clickable="true"
                     android:focusable="true"/>
 
@@ -122,6 +126,83 @@
                     android:padding="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="#FFFFFF"
+                    android:contentDescription="Cambiar pestaña (Ctrl+Tab)"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <!-- Controles de Viewport / Pantalla Proyectada (SmartDisplay AI) -->
+                <ImageView
+                    android:id="@+id/btnVpZoomIn"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:src="@drawable/ic_zoom_in"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Ampliar pantalla"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <ImageView
+                    android:id="@+id/btnVpZoomOut"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:src="@drawable/ic_zoom_out"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Minimizar zoom"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <ImageView
+                    android:id="@+id/btnVpFit"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:src="@drawable/ic_fit_screen"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Ajustar a pantalla"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <ImageView
+                    android:id="@+id/btnVpMove"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:src="@drawable/ic_move_overlay"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Mover pantalla libre"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <ImageView
+                    android:id="@+id/btnVpCenter"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:src="@drawable/ic_center_focus"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Centrar pantalla"
                     android:clickable="true"
                     android:focusable="true"/>
 

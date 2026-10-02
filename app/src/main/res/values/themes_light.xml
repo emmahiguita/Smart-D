@@ -1,157 +1,141 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Variantes CLARAS de los temas. El modo claro/oscuro es ortogonal al acento:
-  ThemeManager combina (acento × modo). La base clara define neutros M3 claros y
-  windowLightStatusBar=true; cada variante de acento solo cambia primary/secondary.
+  Variantes CLARAS EXPRESSIVE (Material 3 Expressive) de los 7 temas.
+  Define neutros luminosos de alta gama, elevaciones tonales escalonadas y
+  colores de acento con alto croma (vibrantes y de máxima legibilidad).
 -->
 <resources>
 
-    <!-- Base clara: neutros Material 3 claros -->
+    <!-- Base clara Expressive: neutros luminosos Material 3 Expressive -->
     <style name="Theme.SmartDisplayAI.Light" parent="Theme.SmartDisplayAI">
-        <item name="android:colorBackground">#FDFBFF</item>
-        <item name="colorOnBackground">#1A1C1E</item>
-        <item name="colorSurface">#FDFBFF</item>
-        <item name="colorOnSurface">#1A1C1E</item>
-        <item name="colorSurfaceVariant">#E1E2EC</item>
-        <item name="colorOnSurfaceVariant">#44474F</item>
+        <item name="android:colorBackground">#F8F9FE</item>
+        <item name="colorOnBackground">#191C20</item>
+        <item name="colorSurface">#FCFCFF</item>
+        <item name="colorOnSurface">#191C20</item>
+        <item name="colorSurfaceVariant">#DFE2ED</item>
+        <item name="colorOnSurfaceVariant">#434751</item>
         <item name="colorSurfaceContainerLowest">#FFFFFF</item>
-        <item name="colorSurfaceContainerLow">#F3F3FA</item>
-        <item name="colorSurfaceContainer">#EDEDF4</item>
-        <item name="colorSurfaceContainerHigh">#E7E8EF</item>
-        <item name="colorSurfaceContainerHighest">#E2E2E9</item>
-        <item name="colorOutline">#74777F</item>
-        <item name="colorOutlineVariant">#C4C6D0</item>
+        <item name="colorSurfaceContainerLow">#F2F4FB</item>
+        <item name="colorSurfaceContainer">#ECEDF5</item>
+        <item name="colorSurfaceContainerHigh">#E5E7F0</item>
+        <item name="colorSurfaceContainerHighest">#DFE2EB</item>
+        <item name="colorOutline">#737782</item>
+        <item name="colorOutlineVariant">#C3C6D2</item>
         <item name="android:windowLightStatusBar">true</item>
+        <!-- BottomSheet en modo claro: usa colorSurfaceContainer blanco-grisáceo -->
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SmartDisplay.BottomSheet.Light</item>
     </style>
 
-    <!-- Universo · claro (violeta/cian) -->
+    <!-- 1. Universo · Claro Expressive (Violeta Neón / Cian Eléctrico) -->
     <style name="Theme.SmartDisplayAI.Universe.Light" parent="Theme.SmartDisplayAI.Light">
         <item name="colorPrimary">#6D28D9</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#EADDFF</item>
-        <item name="colorOnPrimaryContainer">#21005D</item>
-        <item name="colorSecondary">#0E7490</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#CFF7FF</item>
-        <item name="colorOnSecondaryContainer">#002027</item>
-        <item name="colorTertiary">#B4004E</item>
-        <item name="colorOnTertiary">#FFFFFF</item>
-    </style>
-
-    <!-- Pixel · claro (azul Google) -->
-    <style name="Theme.SmartDisplayAI.Pixel.Light" parent="Theme.SmartDisplayAI.Light">
-        <item name="colorPrimary">#0B57D0</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#D8E2FF</item>
-        <item name="colorOnPrimaryContainer">#001A41</item>
-        <item name="colorSecondary">#00696E</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#6FF6FE</item>
-        <item name="colorOnSecondaryContainer">#002022</item>
-    </style>
-
-    <!-- Esmeralda · claro (verde) -->
-    <style name="Theme.SmartDisplayAI.Emerald.Light" parent="Theme.SmartDisplayAI.Light">
-        <item name="colorPrimary">#067A57</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#A7F3D0</item>
-        <item name="colorOnPrimaryContainer">#002019</item>
-        <item name="colorSecondary">#00696B</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#99F6E4</item>
-        <item name="colorOnSecondaryContainer">#00201F</item>
-    </style>
-
-    <!-- Ámbar · claro (cálido) -->
-    <style name="Theme.SmartDisplayAI.Amber.Light" parent="Theme.SmartDisplayAI.Light">
-        <item name="colorPrimary">#8A5100</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#FFDDB3</item>
-        <item name="colorOnPrimaryContainer">#2C1600</item>
-        <item name="colorSecondary">#825500</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#FFDDB3</item>
-        <item name="colorOnSecondaryContainer">#291800</item>
-    </style>
-
-    <!-- Grafito · claro (slate) -->
-    <style name="Theme.SmartDisplayAI.Graphite.Light" parent="Theme.SmartDisplayAI.Light">
-        <item name="colorPrimary">#4A5578</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#DDE1F9</item>
-        <item name="colorOnPrimaryContainer">#131C33</item>
-        <item name="colorSecondary">#4A5568</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#D8DDEB</item>
-        <item name="colorOnSecondaryContainer">#141C25</item>
-    </style>
-
-    <!-- Cristal · claro (glass claro · violeta translúcido / frosted glass) -->
-    <style name="Theme.SmartDisplayAI.Glass.Light" parent="Theme.SmartDisplayAI.Light">
-        <item name="colorPrimary">#7C3AED</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#EADDFF</item>
-        <item name="colorOnPrimaryContainer">#21005D</item>
+        <item name="colorPrimaryContainer">#EDE9FE</item>
+        <item name="colorOnPrimaryContainer">#2E1065</item>
         <item name="colorSecondary">#0891B2</item>
         <item name="colorOnSecondary">#FFFFFF</item>
         <item name="colorSecondaryContainer">#CFFAFE</item>
-        <item name="colorOnSecondaryContainer">#002027</item>
-        <item name="colorTertiary">#B4004E</item>
+        <item name="colorOnSecondaryContainer">#164E63</item>
+        <item name="colorTertiary">#E11D48</item>
         <item name="colorOnTertiary">#FFFFFF</item>
-        <!-- Error glass · claro -->
-        <item name="colorError">#BA1A1A</item>
-        <item name="colorOnError">#FFFFFF</item>
-        <item name="colorErrorContainer">#FFDAD6</item>
-        <item name="colorOnErrorContainer">#410002</item>
-        <!-- Superficies cristal claras (negro translúcido muy suave para efecto frost) -->
-        <item name="android:colorBackground">#F8F6FD</item>
-        <item name="colorOnBackground">#1C1B20</item>
-        <item name="colorSurface">#F8F6FD</item>
-        <item name="colorOnSurface">#1C1B20</item>
-        <item name="colorSurfaceVariant">#E6E3F0</item>
-        <item name="colorOnSurfaceVariant">#484650</item>
-        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
-        <item name="colorSurfaceContainerLow">#F5F3FA</item>
-        <item name="colorSurfaceContainer">#EFEDF5</item>
-        <item name="colorSurfaceContainerHigh">#E9E7F0</item>
-        <item name="colorSurfaceContainerHighest">#E4E1EB</item>
-        <item name="colorOutline">#7A7785</item>
-        <item name="colorOutlineVariant">#CAC7D5</item>
+        <item name="colorTertiaryContainer">#FFE4E6</item>
+        <item name="colorOnTertiaryContainer">#881337</item>
     </style>
 
-    <!-- Lluvia · claro (azul cielo / tormenta mañanera) -->
-    <style name="Theme.SmartDisplayAI.Rain.Light" parent="Theme.SmartDisplayAI.Light">
-        <item name="colorPrimary">#00639B</item>
+    <!-- 2. Pixel · Claro Expressive (Azul Google / Material You Vibrante) -->
+    <style name="Theme.SmartDisplayAI.Pixel.Light" parent="Theme.SmartDisplayAI.Light">
+        <item name="colorPrimary">#1A73E8</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#CFE5FF</item>
-        <item name="colorOnPrimaryContainer">#001D33</item>
-        <item name="colorSecondary">#4F616E</item>
+        <item name="colorPrimaryContainer">#D3E3FD</item>
+        <item name="colorOnPrimaryContainer">#041E49</item>
+        <item name="colorSecondary">#0097A7</item>
         <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#D2E5F5</item>
-        <item name="colorOnSecondaryContainer">#0B1D29</item>
-        <item name="colorTertiary">#695F4B</item>
+        <item name="colorSecondaryContainer">#C2F3F9</item>
+        <item name="colorOnSecondaryContainer">#00363D</item>
+        <item name="colorTertiary">#EA580C</item>
         <item name="colorOnTertiary">#FFFFFF</item>
-        <item name="colorTertiaryContainer">#F2E3CA</item>
-        <item name="colorOnTertiaryContainer">#231C0C</item>
-        <!-- Error rain · claro -->
-        <item name="colorError">#BA1A1A</item>
-        <item name="colorOnError">#FFFFFF</item>
-        <item name="colorErrorContainer">#FFDAD6</item>
-        <item name="colorOnErrorContainer">#410002</item>
-        <!-- Fondos y superficies · cielo nublado claro -->
-        <item name="android:colorBackground">#F5FAFF</item>
-        <item name="colorOnBackground">#171C20</item>
-        <item name="colorSurface">#F5FAFF</item>
-        <item name="colorOnSurface">#171C20</item>
-        <item name="colorSurfaceVariant">#DBE4ED</item>
-        <item name="colorOnSurfaceVariant">#3F4850</item>
-        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
-        <item name="colorSurfaceContainerLow">#F0F5FA</item>
-        <item name="colorSurfaceContainer">#EAF0F5</item>
-        <item name="colorSurfaceContainerHigh">#E4EAF0</item>
-        <item name="colorSurfaceContainerHighest">#DFE4EB</item>
-        <item name="colorOutline">#6F7882</item>
-        <item name="colorOutlineVariant">#BFC8D2</item>
+        <item name="colorTertiaryContainer">#FFEDD5</item>
+        <item name="colorOnTertiaryContainer">#7C2D12</item>
+    </style>
+
+    <!-- 3. Esmeralda · Claro Expressive (Verde Pro / Menta Tecnológica) -->
+    <style name="Theme.SmartDisplayAI.Emerald.Light" parent="Theme.SmartDisplayAI.Light">
+        <item name="colorPrimary">#059669</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#D1FAE5</item>
+        <item name="colorOnPrimaryContainer">#064E3B</item>
+        <item name="colorSecondary">#0D9488</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#CCFBF1</item>
+        <item name="colorOnSecondaryContainer">#115E59</item>
+        <item name="colorTertiary">#65A30D</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#ECFCCB</item>
+        <item name="colorOnTertiaryContainer">#365314</item>
+    </style>
+
+    <!-- 4. Ámbar · Claro Expressive (Atardecer Cálido / Oro Solar) -->
+    <style name="Theme.SmartDisplayAI.Amber.Light" parent="Theme.SmartDisplayAI.Light">
+        <item name="colorPrimary">#D97706</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#FEF3C7</item>
+        <item name="colorOnPrimaryContainer">#78350F</item>
+        <item name="colorSecondary">#EA580C</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#FFEDD5</item>
+        <item name="colorOnSecondaryContainer">#7C2D12</item>
+        <item name="colorTertiary">#E11D48</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#FFE4E6</item>
+        <item name="colorOnTertiaryContainer">#881337</item>
+    </style>
+
+    <!-- 5. Grafito · Claro Expressive (Índigo Moderno / Slate Pro) -->
+    <style name="Theme.SmartDisplayAI.Graphite.Light" parent="Theme.SmartDisplayAI.Light">
+        <item name="colorPrimary">#4F46E5</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#E0E7FF</item>
+        <item name="colorOnPrimaryContainer">#312E81</item>
+        <item name="colorSecondary">#475569</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#F1F5F9</item>
+        <item name="colorOnSecondaryContainer">#1E293B</item>
+        <item name="colorTertiary">#0284C7</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#E0F2FE</item>
+        <item name="colorOnTertiaryContainer">#075985</item>
+    </style>
+
+    <!-- 6. Cristal · Claro Expressive (Glassmorphism Ametista / Glaciar) -->
+    <style name="Theme.SmartDisplayAI.Glass.Light" parent="Theme.SmartDisplayAI.Light">
+        <item name="colorPrimary">#7C3AED</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#EDE9FE</item>
+        <item name="colorOnPrimaryContainer">#2E1065</item>
+        <item name="colorSecondary">#0284C7</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#E0F2FE</item>
+        <item name="colorOnSecondaryContainer">#075985</item>
+        <item name="colorTertiary">#DB2777</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#FCE7F3</item>
+        <item name="colorOnTertiaryContainer">#831843</item>
+    </style>
+
+    <!-- 7. Tormenta / Lluvia · Claro Expressive (Azul Océano / Azul Cobalto) -->
+    <style name="Theme.SmartDisplayAI.Rain.Light" parent="Theme.SmartDisplayAI.Light">
+        <item name="colorPrimary">#2563EB</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#DBEAFE</item>
+        <item name="colorOnPrimaryContainer">#1E3A8A</item>
+        <item name="colorSecondary">#0284C7</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#E0F2FE</item>
+        <item name="colorOnSecondaryContainer">#0369A1</item>
+        <item name="colorTertiary">#0D9488</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#CCFBF1</item>
+        <item name="colorOnTertiaryContainer">#115E59</item>
     </style>
 
 </resources>

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Barra Lateral Delgada con Iconos (Slim Icon Navigation Rail Obsidian Glass - Scrollable & Responsive) -->
+<!-- Barra Lateral Delgada con Iconos (iPadOS Floating Glass Dock) -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/slim_nav_rail"
     android:layout_width="72dp"
     android:layout_height="match_parent"
     android:layout_gravity="start"
-    android:background="#F2070D18"
-    android:elevation="16dp"
+    android:background="@drawable/bg_ios_dock_rail"
+    android:elevation="18dp"
     android:fillViewport="true"
     android:fitsSystemWindows="true"
     android:overScrollMode="never"
@@ -20,17 +20,17 @@
         android:orientation="vertical"
         android:paddingVertical="8dp">
 
-        <!-- Logo / Marca superior con Badge Glass -->
+        <!-- Logo / Marca superior con Badge Glass Squircle -->
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginTop="4dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
             android:layout_marginBottom="8dp"
-            app:cardBackgroundColor="#1A2740"
+            app:cardBackgroundColor="#181A24"
             app:cardCornerRadius="14dp"
             app:cardElevation="0dp"
-            app:strokeColor="#3378A6D8"
-            app:strokeWidth="1dp">
+            app:strokeColor="#330A84FF"
+            app:strokeWidth="1.2dp">
 
             <ImageView
                 android:layout_width="match_parent"
@@ -43,10 +43,10 @@
         </com.google.android.material.card.MaterialCardView>
 
         <View
-            android:layout_width="32dp"
+            android:layout_width="34dp"
             android:layout_height="1dp"
             android:layout_marginBottom="6dp"
-            android:background="#2078A6D8" />
+            android:background="#26FFFFFF" />
 
         <!-- 1. Agregar PC -->
         <com.google.android.material.button.MaterialButton

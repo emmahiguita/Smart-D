@@ -100,7 +100,7 @@
 
         <!-- ── DIÁLOGOS Y ALERTAS GLASS OBSIDIAN ────────────────────── -->
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.SmartDisplay.MaterialAlertDialog</item>
-        <item name="alertDialogTheme">@style/ThemeOverlay.SmartDisplay.MaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.AppCompat.Dialog.Alert</item>
     </style>
 
     <!-- Tema Universo (Espacial/Neon - Material 3 Dark/Neon Mode) -->

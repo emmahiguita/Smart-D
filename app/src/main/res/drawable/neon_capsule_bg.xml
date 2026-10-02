@@ -1,41 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  neon_capsule_bg.xml — Cápsula de control de ventanas con borde neón.
-  Capas: fondo oscuro degradado → borde neón morado → brillo superior (sheen).
-  El elevation=12dp del contenedor añade la sombra de profundidad.
+  neon_capsule_bg.xml — Cápsula flotante estilo Dynamic Island / Apple VisionOS Glass.
+  Fondo translúcido zafiro obsidiana + bisel especular superior + micro-resplandor interior.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Fondo: degradado oscuro profundo con vidrio -->
+    <!-- Capa 1: Sombra y cuerpo base de cristal ahumado -->
     <item>
         <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#E01A1A2E"
-                android:endColor="#C0101020"
-                android:angle="270" />
-            <corners android:radius="16dp" />
+            <corners android:radius="999dp" />
+            <solid android:color="#E6070B14" />
         </shape>
     </item>
 
-    <!-- Borde neón: morado + trazo interior tenue para glow simulado -->
+    <!-- Capa 2: Gradiente sutil de refracción vítrea -->
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="16dp" />
+            <corners android:radius="999dp" />
+            <gradient
+                android:startColor="#33243552"
+                android:centerColor="#1F152033"
+                android:endColor="#140E1422"
+                android:angle="270" />
             <stroke
-                android:width="2dp"
-                android:color="#8B5CF6" />
+                android:width="1.2dp"
+                android:color="#59FFFFFF" />
         </shape>
     </item>
 
-    <!-- Brillo superior tipo glassmorphism -->
-    <item>
+    <!-- Capa 3: Micro-borde etéreo interior -->
+    <item android:top="1dp" android:left="1dp" android:right="1dp" android:bottom="1dp">
         <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#2AFFFFFF"
-                android:centerColor="#0DFFFFFF"
-                android:endColor="#00FFFFFF"
-                android:angle="270" />
-            <corners android:radius="16dp" />
+            <corners android:radius="999dp" />
+            <stroke
+                android:width="0.8dp"
+                android:color="#2B0A84FF" />
         </shape>
     </item>
 

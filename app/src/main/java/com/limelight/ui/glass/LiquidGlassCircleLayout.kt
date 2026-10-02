@@ -121,14 +121,19 @@ class LiquidGlassCircleLayout @JvmOverloads constructor(
             Shader.TileMode.CLAMP
         )
 
+        val primary = com.limelight.utils.ThemeManager.accentColor(context)
+        val secondary = com.limelight.utils.ThemeManager.secondaryAccentColor(context)
+
         // 2. Refracción Cáustica Inferior (Secondary Caustic Bounce & Rainbow Glow)
+        val causticStart = (0x70 shl 24) or (primary and 0x00FFFFFF)
+        val causticMid = (0x28 shl 24) or (secondary and 0x00FFFFFF)
         causticShader = RadialGradient(
             cx + radius * 0.28f,
             cy + radius * 0.46f,
             radius * 0.88f,
             intArrayOf(
-                0x703CE8FF.toInt(), // Foco cáustico concentrado cian eléctrico
-                0x280075FF.toInt(), // Dispersión de luz zafiro en la curva inferior
+                causticStart,
+                causticMid,
                 Color.TRANSPARENT
             ),
             floatArrayOf(0f, 0.52f, 1f),
@@ -143,7 +148,7 @@ class LiquidGlassCircleLayout @JvmOverloads constructor(
             cy + radius * 0.42f,
             intArrayOf(
                 0xDDFFFFFF.toInt(), // Destello diamante puro en el vértice superior
-                0x60AEEBFF.toInt(), // Dispersión celeste translúcida
+                (0x50 shl 24) or (primary and 0x00FFFFFF), // Dispersión translúcida con tono de tema
                 Color.TRANSPARENT
             ),
             floatArrayOf(0f, 0.38f, 1f),
@@ -165,27 +170,33 @@ class LiquidGlassCircleLayout @JvmOverloads constructor(
         )
 
         // 4. Borde Refractivo Cromático (Fresnel Prismatic Rim HD)
+        val rimC1 = (0xFF shl 24) or (primary and 0x00FFFFFF)
+        val rimC2 = 0xFFFFFFFF.toInt()
+        val rimC3 = (0xFF shl 24) or (secondary and 0x00FFFFFF)
+        val rimC4 = (0x77 shl 24) or (primary and 0x00FFFFFF)
         rimShader = SweepGradient(
             cx,
             cy,
             intArrayOf(
-                0xFF66E5FF.toInt(), // Cian neón cristalino
-                0xFFFFFFFF.toInt(), // Destello diamante puro
-                0xFF2590FF.toInt(), // Zafiro brillante
-                0x666085FF.toInt(), // Prisma de dispersión violeta
-                0xFF66E5FF.toInt()  // Cierre de arco continuo
+                rimC1,
+                rimC2,
+                rimC3,
+                rimC4,
+                rimC1
             ),
             null
         )
 
         // 5. Halo Líquido Exterior Ambiental (Ambient Fluid Glow)
+        val haloStart = (0x40 shl 24) or (primary and 0x00FFFFFF)
+        val haloMid = (0x15 shl 24) or (secondary and 0x00FFFFFF)
         haloShader = RadialGradient(
             cx,
             cy,
             radius * 1.36f,
             intArrayOf(
-                0x403CE8FF.toInt(),
-                0x150075FF.toInt(),
+                haloStart,
+                haloMid,
                 Color.TRANSPARENT
             ),
             floatArrayOf(0.50f, 0.78f, 1f),

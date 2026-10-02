@@ -191,6 +191,150 @@ object AppContainer {
         return com.limelight.ui.MouseModeCircle(activity)
     }
 
+    fun createSmartDisplaySessionManager(
+        activity: android.app.Activity,
+        streamView: android.view.SurfaceView,
+        prefConfig: com.limelight.preferences.PreferenceConfiguration?,
+        transformWrapper: android.view.View?,
+        adaptiveCursor: com.limelight.ui.AdaptiveCursorView?,
+        smartCursorEngine: com.limelight.ui.SmartCursorEngine?,
+        logicalKeyboard: com.limelight.ui.LogicalKeyboardOverlay?,
+        portraitHybridCtrl: com.limelight.ui.PortraitHybridController?,
+        smartTaskbar: com.limelight.ui.SmartTaskbarController?,
+        fileBrowser: com.limelight.ui.FileBrowserController?,
+        streamMotionInputHandler: com.limelight.smartdisplay.input.StreamMotionInputHandler?
+    ): com.limelight.smartdisplay.session.SmartDisplaySessionManager {
+        return com.limelight.smartdisplay.session.SmartDisplaySessionManager(
+            activity,
+            streamView,
+            prefConfig,
+            transformWrapper,
+            adaptiveCursor,
+            smartCursorEngine,
+            logicalKeyboard,
+            portraitHybridCtrl,
+            smartTaskbar,
+            fileBrowser,
+            streamMotionInputHandler
+        )
+    }
+
+    /**
+     * Crea el orquestador unificado de movimiento de ventanas [WindowMotionCoordinator].
+     * Aplica Facade y Dependency Inversion (SOLID).
+     */
+    fun createWindowMotionCoordinator(
+        transport:  com.limelight.smartdisplay.motion.WindowMotionTransport,
+        streamView: android.view.View,
+        context:    android.content.Context,
+        pcWidth:    Int = 1920,
+        pcHeight:   Int = 1080
+    ): com.limelight.smartdisplay.motion.WindowMotionCoordinator {
+        return com.limelight.smartdisplay.motion.WindowMotionCoordinator(
+            transport, streamView, context, pcWidth, pcHeight
+        )
+    }
+
+    /**
+     * Crea un [LocalWindowAnimator] Choreographer-driven a 60 FPS.
+     */
+    fun createLocalWindowAnimator(
+        onFrame: (Map<Int, android.graphics.RectF>) -> Unit
+    ): com.limelight.smartdisplay.motion.LocalWindowAnimator {
+        return com.limelight.smartdisplay.motion.LocalWindowAnimator(onFrame)
+    }
+
+    /**
+     * Crea un [WindowOverlayView] para dibujar el overlay de animacion
+     * local sobre el StreamView.
+     */
+    fun createWindowOverlayView(
+        activity: android.app.Activity
+    ): com.limelight.smartdisplay.motion.WindowOverlayView {
+        return com.limelight.smartdisplay.motion.WindowOverlayView(activity)
+    }
+
+    // ── Subsistemas Clean Architecture ───────────────────────────────────
+
+    fun createSessionPowerManager(
+        context: android.content.Context
+    ): com.limelight.smartdisplay.power.SessionPowerManager {
+        return com.limelight.smartdisplay.power.SessionPowerManager(context)
+    }
+
+    fun createClipboardSyncManager(
+        context: android.content.Context,
+        sendToBus: (org.json.JSONObject) -> Unit
+    ): com.limelight.smartdisplay.clipboard.ClipboardSyncManager {
+        return com.limelight.smartdisplay.clipboard.ClipboardSyncManager(context, sendToBus)
+    }
+
+    fun createFileShareCoordinator(
+        activity: android.app.Activity,
+        sendToBus: (org.json.JSONObject) -> Unit
+    ): com.limelight.smartdisplay.files.FileShareCoordinator {
+        return com.limelight.smartdisplay.files.FileShareCoordinator(activity, sendToBus)
+    }
+
+    fun createScreenCaptureManager(
+        activity: android.app.Activity
+    ): com.limelight.smartdisplay.capture.ScreenCaptureManager {
+        return com.limelight.smartdisplay.capture.ScreenCaptureManager(activity)
+    }
+
+    fun createCompanionDiscoveryReceiver(
+        context: android.content.Context,
+        onStopRequested: () -> Unit
+    ): com.limelight.smartdisplay.connection.CompanionDiscoveryReceiver {
+        return com.limelight.smartdisplay.connection.CompanionDiscoveryReceiver(context, onStopRequested)
+    }
+
+    fun createStreamKeyboardHandler(
+        callback: com.limelight.smartdisplay.input.KeyboardSessionCallback,
+        keyboardTranslator: com.limelight.binding.input.KeyboardTranslator,
+        controllerHandler: com.limelight.binding.input.ControllerHandler?,
+        connection: com.limelight.nvstream.NvConnection?
+    ): com.limelight.smartdisplay.input.StreamKeyboardHandler {
+        return com.limelight.smartdisplay.input.StreamKeyboardHandler(
+            callback, keyboardTranslator, controllerHandler, connection
+        )
+    }
+
+    fun createSessionDisplayManager(
+        activity: android.app.Activity,
+        streamView: com.limelight.ui.StreamView,
+        prefConfig: com.limelight.preferences.PreferenceConfiguration
+    ): com.limelight.smartdisplay.display.SessionDisplayManager {
+        return com.limelight.smartdisplay.display.SessionDisplayManager(activity, streamView, prefConfig)
+    }
+
+    fun createSessionRecoveryUiManager(
+        activity: android.app.Activity,
+        streamView: android.view.View?,
+        reconnectOverlayView: android.view.View?,
+        reconnectStatusText: android.widget.TextView?
+    ): com.limelight.smartdisplay.recovery.SessionRecoveryUiManager {
+        return com.limelight.smartdisplay.recovery.SessionRecoveryUiManager(
+            activity, streamView, reconnectOverlayView, reconnectStatusText
+        )
+    }
+
+    fun createStreamCrashRecoveryManager(
+        context: Context
+    ): com.limelight.smartdisplay.recovery.StreamCrashRecoveryManager {
+        return com.limelight.smartdisplay.recovery.StreamCrashRecoveryManager(context)
+    }
+
+    fun createStreamMotionInputHandler(
+        prefConfig: com.limelight.preferences.PreferenceConfiguration,
+        inputCaptureProvider: com.limelight.binding.input.capture.InputCaptureProvider,
+        onToggleKeyboard: () -> Unit
+    ): com.limelight.smartdisplay.input.StreamMotionInputHandler {
+        return com.limelight.smartdisplay.input.StreamMotionInputHandler(
+            prefConfig, inputCaptureProvider, onToggleKeyboard
+        )
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // SharedPreferences accessors
     // ═══════════════════════════════════════════════════════════════════════

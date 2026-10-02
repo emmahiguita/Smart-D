@@ -68,8 +68,8 @@ class SessionRecoveryManager(private val context: Context) {
     fun getHost(): String? = prefs.getString(KEY_HOST, null)
     fun getPort(): Int = prefs.getInt(KEY_PORT, 47989)
     fun getHttpsPort(): Int = prefs.getInt(KEY_HTTPS_PORT, 0)
-    fun getAppName(): String = prefs.getString(KEY_APP_NAME, "") ?: ""
-    fun getAppId(): Int = prefs.getInt(KEY_APP_ID, -1)
+    val appName: String get() = prefs.getString(KEY_APP_NAME, "") ?: ""
+    val appId: Int get() = prefs.getInt(KEY_APP_ID, -1)
     fun getUniqueId(): String = prefs.getString(KEY_UNIQUE_ID, "") ?: ""
     fun getPcUuid(): String = prefs.getString(KEY_PC_UUID, "") ?: ""
     fun getPcName(): String = prefs.getString(KEY_PC_NAME, "") ?: ""
@@ -96,3 +96,4 @@ class SessionRecoveryManager(private val context: Context) {
         prefs.edit().putBoolean(KEY_HAS_SESSION, false).apply()
     }
 }
+

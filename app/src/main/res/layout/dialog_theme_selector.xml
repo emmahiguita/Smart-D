@@ -5,6 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bg_ios_sheet_canvas"
     android:padding="20dp">
 
     <LinearLayout
@@ -43,15 +44,14 @@
         <!-- Selector de Modo Claro / Oscuro -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_mode_toggle"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-            app:cardCornerRadius="16dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -117,17 +117,16 @@
         <!-- 1. Universo -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/theme_card_universe"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
-            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -181,17 +180,16 @@
         <!-- 2. Pixel -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/theme_card_pixel"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
-            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -245,17 +243,16 @@
         <!-- 3. Esmeralda -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/theme_card_emerald"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
-            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -309,17 +306,16 @@
         <!-- 4. Ámbar -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/theme_card_amber"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
-            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -373,17 +369,16 @@
         <!-- 5. Grafito -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/theme_card_graphite"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
-            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -437,17 +432,16 @@
         <!-- 6. Cristal -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/theme_card_glass"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
-            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -501,17 +495,16 @@
         <!-- 7. Lluvia -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/theme_card_rain"
-            style="?attr/materialCardViewElevatedStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
-            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#2E121A28"
+            app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:strokeColor="#47FFFFFF"
+            app:strokeWidth="1.2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"

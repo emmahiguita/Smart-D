@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Barra Lateral Flotante iPadOS Glass Dock con Bisel Especular Derecho -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Capa 1: Fondo de cristal ahumado profundo -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E0070B14" />
+        </shape>
+    </item>
+
+    <!-- Capa 2: Gradiente sutil de refracción horizontal -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#26101A2E"
+                android:centerColor="#140D1524"
+                android:endColor="#331A263D"
+                android:angle="0" />
+        </shape>
+    </item>
+
+    <!-- Capa 3: Bisel vertical derecho de separación especular -->
+    <item android:left="-2dp" android:top="0dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1.2dp"
+                android:color="#4DFFFFFF" />
+        </shape>
+    </item>
+</layer-list>

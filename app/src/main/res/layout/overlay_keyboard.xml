@@ -9,27 +9,27 @@
     android:layout_height="wrap_content"
     android:visibility="gone"
 
-    app:cardCornerRadius="16dp"
+    app:cardCornerRadius="22dp"
     app:cardElevation="18dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="#33FFFFFF"
-    app:cardBackgroundColor="#C0121212">
+    app:strokeWidth="1.2dp"
+    app:strokeColor="#59FFFFFF"
+    app:cardBackgroundColor="#E6080C16">
 
     <LinearLayout
         android:id="@+id/keyboardContentLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="8dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="8dp">
+        android:paddingHorizontal="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="6dp">
 
         <!-- HEADER -->
 
         <LinearLayout
             android:id="@+id/keyboardDragHandle"
             android:layout_width="match_parent"
-            android:layout_height="42dp"
+            android:layout_height="40dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -57,7 +57,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/keyboard_title"
                         android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textSize="13sp"
+                        android:textSize="12.5sp"
                         android:textColor="@color/hud_text"/>
 
                     <TextView
@@ -80,11 +80,21 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"/>
 
+            <!-- ── Botón de Cambio de Escala / Tamaño ── -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScaleKeyboard"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                app:icon="@drawable/ic_scale_keyboard"
+                app:iconTint="@color/hud_text"
+                android:contentDescription="Ajustar tamaño teclado"/>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRGB"
                 style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 app:icon="@drawable/ic_palette"
                 app:iconTint="@color/hud_text"/>
 
@@ -92,15 +102,15 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="2dp"
                 android:orientation="horizontal"
                 android:gravity="center">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAlphaDown"
                     style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     app:icon="@drawable/ic_remove"
                     app:iconTint="@color/hud_text"
                     android:importantForAccessibility="yes"
@@ -109,8 +119,8 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAlphaUp"
                     style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     app:icon="@drawable/ic_add"
                     app:iconTint="@color/hud_text"
                     android:importantForAccessibility="yes"
@@ -121,8 +131,8 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCloseKeyboard"
                 style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 app:icon="@drawable/ic_close"
                 app:iconTint="@color/hud_text"/>
         </LinearLayout>

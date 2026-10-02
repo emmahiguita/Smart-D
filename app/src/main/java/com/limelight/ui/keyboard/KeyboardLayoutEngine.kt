@@ -25,10 +25,10 @@ class KeyboardLayoutEngine(
         get() = context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     private val keyHeightDp: Float
-        get() = if (isPortrait) 44f else 38f
+        get() = if (isPortrait) 24f else 37f
 
     private val keyHorizontalMarginDp: Float
-        get() = if (isPortrait) 1.5f else 2.0f
+        get() = if (isPortrait) 0.9f else 1.8f
 
     interface ActionHandler {
         fun onCharKeyPressed(kd: KeyData)
@@ -115,8 +115,8 @@ class KeyboardLayoutEngine(
         key.setTextColor(ContextCompat.getColor(context, R.color.kbd_key_text))
 
         val targetTextSize = when (style) {
-            KeyStyle.PROFILE -> 11.5f
-            KeyStyle.STANDARD -> if (isSpecial) 13f else 15.5f
+            KeyStyle.PROFILE -> if (isPortrait) 10.0f else 11.5f
+            KeyStyle.STANDARD -> if (isPortrait) (if (isSpecial) 11.0f else 12.5f) else (if (isSpecial) 13f else 15.5f)
         }
         key.setTextSize(TypedValue.COMPLEX_UNIT_SP, targetTextSize)
         key.isSingleLine = style == KeyStyle.STANDARD
@@ -124,19 +124,27 @@ class KeyboardLayoutEngine(
             key.maxLines = 2
             key.includeFontPadding = false
             key.setLineSpacing(0f, 0.95f)
-            key.setPadding(dpToPx(3f), dpToPx(2f), dpToPx(3f), dpToPx(2f))
+            key.setPadding(dpToPx(2f), dpToPx(1f), dpToPx(2f), dpToPx(1f))
+        } else {
+            key.setPadding(0, 0, 0, 0)
         }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             key.setAutoSizeTextTypeUniformWithConfiguration(
-                9,
-                targetTextSize.toInt(),
+                7,
+                targetTextSize.toInt().coerceAtLeast(8),
                 1,
                 TypedValue.COMPLEX_UNIT_SP
             )
         }
 
-        val params = LinearLayout.LayoutParams(0, dpToPx(keyHeightDp), weight)
+        val currentKeyHeight = if (style == KeyStyle.PROFILE) {
+            if (isPortrait) 36f else 40f
+        } else {
+            keyHeightDp
+        }
+
+        val params = LinearLayout.LayoutParams(0, dpToPx(currentKeyHeight), weight)
         val margin = dpToPx(keyHorizontalMarginDp)
         params.marginStart = margin
         params.marginEnd = margin
@@ -151,7 +159,7 @@ class KeyboardLayoutEngine(
 
         val drawable = GradientDrawable()
         drawable.setColor(fillColor)
-        drawable.cornerRadius = dpToPx(if (isPortrait) 6f else 5f).toFloat()
+        drawable.cornerRadius = dpToPx(if (isPortrait) 4f else 5f).toFloat()
         drawable.setStroke(dpToPx(1f), strokeColor)
 
         key.background = RippleDrawable(ColorStateList.valueOf(rippleColor), drawable, drawable)
@@ -174,7 +182,7 @@ class KeyboardLayoutEngine(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                bottomMargin = dpToPx(if (isPortrait) 3.5f else 2.5f)
+                bottomMargin = dpToPx(if (isPortrait) 2.0f else 2.5f)
             }
         }
     }
@@ -215,19 +223,11 @@ class KeyboardLayoutEngine(
         tooltip: String
     ) {
         val key = createKey(label, weight, true)
-        val isNormalTab = handler?.getCurrentTab() == 1
         key.setOnClickListener { view ->
             handler?.let { h ->
                 h.animateKeyPress(view)
                 h.onSpecialKeyPressed(vkCode)
-                if (!isNormalTab) {
-                    Toast.makeText(context, tooltip, Toast.LENGTH_SHORT).show()
-                }
             }
-        }
-        key.setOnLongClickListener {
-            Toast.makeText(context, tooltip, Toast.LENGTH_SHORT).show()
-            true
         }
         row.addView(key)
     }
@@ -281,7 +281,6 @@ class KeyboardLayoutEngine(
             handler?.let { h ->
                 h.animateKeyPress(view)
                 h.onRemoteAction(spec.action)
-                Toast.makeText(context, spec.tooltip, Toast.LENGTH_SHORT).show()
             }
         }
         key.setOnLongClickListener {

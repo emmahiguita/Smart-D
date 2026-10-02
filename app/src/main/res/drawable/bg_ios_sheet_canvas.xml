@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hoja Modal / Bottom Sheet en Cristal Translúcido OLED estilo iOS 18 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Capa 1: Base de cristal ahumado oscuro con esquinas superiores redondeadas -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners
+                android:topLeftRadius="28dp"
+                android:topRightRadius="28dp"
+                android:bottomLeftRadius="0dp"
+                android:bottomRightRadius="0dp" />
+            <solid android:color="#F2070A12" />
+        </shape>
+    </item>
+
+    <!-- Capa 2: Gradiente sutil de refracción vertical -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners
+                android:topLeftRadius="28dp"
+                android:topRightRadius="28dp"
+                android:bottomLeftRadius="0dp"
+                android:bottomRightRadius="0dp" />
+            <gradient
+                android:startColor="#33243552"
+                android:centerColor="#14141E2E"
+                android:endColor="#00000000"
+                android:angle="270" />
+        </shape>
+    </item>
+
+    <!-- Capa 3: Bisel especular superior reflectante -->
+    <item android:bottom="-2dp" android:left="0dp" android:right="0dp">
+        <shape android:shape="rectangle">
+            <corners
+                android:topLeftRadius="28dp"
+                android:topRightRadius="28dp"
+                android:bottomLeftRadius="0dp"
+                android:bottomRightRadius="0dp" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#59FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

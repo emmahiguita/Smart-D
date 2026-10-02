@@ -1,36 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  fab_radial_item_bg.xml — Glassmorphism premium v3.
-  Diseño refinado de 48dp con un aspecto ultra-limpio (Fluent/Linear):
-    1. Halo ambiental morado exterior de baja opacidad
-    2. Disco glassmorphism oscuro azul medianoche (44dp)
-    3. Stroke fino interior (42dp)
+  fab_radial_item_bg.xml — Botón radial estilo Apple iOS 18 Control Center Glass.
+  Fondo translúcido zafiro obsidiana + bisel especular blanco + halo ambiental cian.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Capa 1: Aura exterior difusa morado eléctrico (muy sutil) -->
+    <!-- Capa 1: Halo ambiental difuso Electric Blue -->
     <item>
         <shape android:shape="oval">
-            <solid android:color="#1F8B5CF6"/>
-            <size android:width="48dp" android:height="48dp"/>
+            <solid android:color="#240A84FF" />
+            <size android:width="48dp" android:height="48dp" />
         </shape>
     </item>
 
-    <!-- Capa 2: Disco glassmorphism — fondo oscuro semitransparente -->
+    <!-- Capa 2: Disco de cristal ahumado translúcido con bisel especular -->
     <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
         <shape android:shape="oval">
-            <solid android:color="#F20D1525"/>
-            <stroke android:width="1dp" android:color="#33FFFFFF"/>
-            <size android:width="44dp" android:height="44dp"/>
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#E610192A"
+                android:endColor="#F0070B14" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#59FFFFFF" />
+            <size android:width="44dp" android:height="44dp" />
         </shape>
     </item>
 
-    <!-- Capa 3: Anillo interior neon cian sutil para el brillo de cristal -->
+    <!-- Capa 3: Micro-borde etéreo interior zafiro reflectante -->
     <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
         <shape android:shape="oval">
-            <solid android:color="#00000000"/>
-            <stroke android:width="0.5dp" android:color="#2200D4FF"/>
-            <size android:width="42dp" android:height="42dp"/>
+            <stroke
+                android:width="0.8dp"
+                android:color="#2B0A84FF" />
+            <size android:width="42dp" android:height="42dp" />
         </shape>
     </item>
 

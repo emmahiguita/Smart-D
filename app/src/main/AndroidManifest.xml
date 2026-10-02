@@ -50,6 +50,7 @@
         android:required="false"/>
 
     <application
+        android:name=".SmartDisplayApp"
         android:allowBackup="true"
         android:largeHeap="true"
         android:fullBackupContent="@xml/backup_rules"
@@ -165,6 +166,7 @@
         <activity
             android:name=".Game"
             android:exported="true"
+            android:windowSoftInputMode="adjustNothing"
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"
             android:noHistory="true"
             android:supportsPictureInPicture="true"
@@ -205,7 +207,7 @@
 
         <activity
             android:name=".FileTransferActivity"
-            android:exported="false"
+            android:exported="true"
             android:resizeableActivity="true"
             android:enableOnBackInvokedCallback="true"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"

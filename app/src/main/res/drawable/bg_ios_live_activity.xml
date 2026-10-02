@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Contenedor Live Activity / Dynamic Island en Cristal Translúcido Hiperrealista -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Capa 1: Sombra y tinte base de cristal ahumado translúcido -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <solid android:color="#4D0E1320" />
+        </shape>
+    </item>
+
+    <!-- Capa 2: Superficie de vidrio translúcido con gradiente de refracción -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <gradient
+                android:startColor="#73222E47"
+                android:centerColor="#4D141C2E"
+                android:endColor="#380C111F"
+                android:angle="135" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#59FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Capa 3: Bisel interno con brillo de neón Apple Electric Blue -->
+    <item android:top="1dp" android:left="1dp" android:right="1dp" android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="25dp" />
+            <stroke
+                android:width="0.8dp"
+                android:color="#400A84FF" />
+        </shape>
+    </item>
+</layer-list>

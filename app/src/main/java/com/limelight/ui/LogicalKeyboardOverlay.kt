@@ -172,8 +172,7 @@ class LogicalKeyboardOverlay(
             .start()
 
         panelRoot.post {
-            val panelHeight = (panelRoot.measuredHeight * state.currentScale).coerceAtLeast(1f)
-            setScreenOffset(-panelHeight * 0.85f)
+            notifyKeyboardToCoordinator(true)
         }
     }
 
@@ -191,7 +190,7 @@ class LogicalKeyboardOverlay(
 
         val targetY = panelRoot.y
         visibilityListener?.onVisibilityChanged(false, targetY.toInt())
-        setScreenOffset(0f)
+        notifyKeyboardToCoordinator(false)
 
         panelRoot.animate()
             .alpha(0f)
@@ -226,8 +225,7 @@ class LogicalKeyboardOverlay(
             ) { state.currentScale = it }
 
             visibilityListener?.onVisibilityChanged(true, panelRoot.y.toInt())
-            val panelHeight = (panelRoot.measuredHeight * state.currentScale).coerceAtLeast(1f)
-            setScreenOffset(-panelHeight * 0.85f)
+            notifyKeyboardToCoordinator(true)
         }
     }
 
@@ -299,6 +297,14 @@ class LogicalKeyboardOverlay(
         panelRoot.findViewById<TextView>(R.id.btnAlphaUp)?.setOnClickListener {
             incAlpha()
         }
+        panelRoot.findViewById<View>(R.id.btnScaleKeyboard)?.setOnClickListener {
+            cycleScale()
+        }
+        panelRoot.findViewById<View>(R.id.btnScaleKeyboard)?.setOnLongClickListener {
+            applyScale(1.0f, animated = true)
+            android.widget.Toast.makeText(context, "Tamaño teclado: 100% (Reset)", android.widget.Toast.LENGTH_SHORT).show()
+            true
+        }
         panelRoot.findViewById<View>(R.id.btnCloseKeyboard)?.setOnClickListener {
             hide()
         }
@@ -313,32 +319,48 @@ class LogicalKeyboardOverlay(
             context,
             object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
                 override fun onScale(detector: ScaleGestureDetector): Boolean {
-                    state.currentScale = (state.currentScale * detector.scaleFactor).coerceIn(0.78f, 1.15f)
-                    panelRoot.scaleX = state.currentScale
-                    panelRoot.scaleY = state.currentScale
+                    val newScale = (state.currentScale * detector.scaleFactor).coerceIn(0.45f, 1.50f)
+                    state.currentScale = newScale
+                    panelRoot.scaleX = newScale
+                    panelRoot.scaleY = newScale
                     val parent = panelRoot.parent as? View ?: return true
                     panelRoot.x = position.clampX(
                         panelRoot.x,
                         parent,
-                        panelRoot.width * state.currentScale
+                        panelRoot.width * newScale
                     )
                     panelRoot.y = position.clampY(
                         panelRoot.y,
                         parent,
-                        panelRoot.height * state.currentScale
+                        panelRoot.height * newScale
                     )
+                    notifyKeyboardToCoordinator(true)
                     return true
                 }
 
                 override fun onScaleEnd(detector: ScaleGestureDetector) {
                     persistence.saveState(state)
+                    notifyKeyboardToCoordinator(true)
                 }
             }
         )
 
         val dragHandle = panelRoot.findViewById<View>(R.id.keyboardDragHandle) ?: return
+        val gestureDetector = android.view.GestureDetector(
+            context,
+            object : android.view.GestureDetector.SimpleOnGestureListener() {
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    // Doble toque en la barra superior restaura escala a 1.0
+                    applyScale(1.0f, animated = true)
+                    android.widget.Toast.makeText(context, "Tamaño: 100%", android.widget.Toast.LENGTH_SHORT).show()
+                    return true
+                }
+            }
+        )
+
         dragHandle.setOnTouchListener { view, event ->
             scaleDetector.onTouchEvent(event)
+            gestureDetector.onTouchEvent(event)
             if (!scaleDetector.isInProgress && event.pointerCount == 1) {
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
@@ -362,6 +384,7 @@ class LogicalKeyboardOverlay(
                     }
                     MotionEvent.ACTION_UP -> {
                         persistence.saveState(state)
+                        notifyKeyboardToCoordinator(true)
                         view.performClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
@@ -370,6 +393,52 @@ class LogicalKeyboardOverlay(
                 }
             }
             true
+        }
+    }
+
+    private fun cycleScale() {
+        val current = state.currentScale
+        val next = when {
+            current < 0.72f -> 0.85f
+            current < 0.92f -> 1.00f
+            current < 1.15f -> 1.25f
+            current < 1.35f -> 0.65f
+            else -> 1.00f
+        }
+        applyScale(next, animated = true)
+        val percent = (next * 100).toInt()
+        android.widget.Toast.makeText(context, "Tamaño teclado: $percent%", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun applyScale(targetScale: Float, animated: Boolean = false) {
+        val clamped = targetScale.coerceIn(0.45f, 1.50f)
+        state.currentScale = clamped
+        persistence.saveState(state)
+
+        val parent = panelRoot.parent as? View
+        if (animated) {
+            panelRoot.animate()
+                .scaleX(clamped)
+                .scaleY(clamped)
+                .setDuration(200)
+                .setUpdateListener {
+                    if (parent != null) {
+                        panelRoot.x = position.clampX(panelRoot.x, parent, panelRoot.width * panelRoot.scaleX)
+                        panelRoot.y = position.clampY(panelRoot.y, parent, panelRoot.height * panelRoot.scaleY)
+                    }
+                }
+                .withEndAction {
+                    notifyKeyboardToCoordinator(true)
+                }
+                .start()
+        } else {
+            panelRoot.scaleX = clamped
+            panelRoot.scaleY = clamped
+            if (parent != null) {
+                panelRoot.x = position.clampX(panelRoot.x, parent, panelRoot.width * clamped)
+                panelRoot.y = position.clampY(panelRoot.y, parent, panelRoot.height * clamped)
+            }
+            notifyKeyboardToCoordinator(true)
         }
     }
 
@@ -562,25 +631,29 @@ class LogicalKeyboardOverlay(
     }
 
     // ------------------------------------------------------------
-    // STREAM OFFSET
+    // STREAM OFFSET — Ahora usa OverlayLayoutCoordinator
     // ------------------------------------------------------------
 
-    private fun setScreenOffset(target: Float) {
-        if (context !is Game) {
-            return
-        }
+    /**
+     * Notifica al coordinator sobre la presencia/ausencia del teclado.
+     * El DesktopViewportEngine decidirá inteligentemente si panear y cuánto,
+     * basándose en la posición del cursor (no un offset fijo).
+     */
+    private fun notifyKeyboardToCoordinator(visible: Boolean) {
+        if (context !is Game) return
         val controller = context.streamTransformCtrl ?: return
-        keyboardOffsetAnim?.cancel()
-        val animator = ValueAnimator.ofFloat(
-            controller.keyboardOffsetY,
-            target
-        )
-        animator.duration = 250
-        animator.interpolator = KeyboardAnimationEngine.EASING_DECELERATE
-        animator.addUpdateListener { valueAnimator ->
-            controller.setKeyboardOffset(valueAnimator.animatedValue as Float)
+
+        if (visible) {
+            val panelHeight = (panelRoot.measuredHeight * state.currentScale).coerceAtLeast(1f)
+            val parent = panelRoot.parent as? View ?: return
+            val keyboardTop = (panelRoot.y).toInt()
+            val keyboardBounds = android.graphics.Rect(
+                0, keyboardTop,
+                parent.width, (keyboardTop + panelHeight).toInt()
+            )
+            controller.onKeyboardShown(keyboardBounds, null)
+        } else {
+            controller.onKeyboardHidden()
         }
-        keyboardOffsetAnim = animator
-        animator.start()
     }
 }

@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   activity_game.xml  v2.1 (Material 3 & Premium Polish)
-  ─────────────────────────────────────────────────────
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Mejoras M3 Aplicadas:
-  - MaterialButton (IconButton) para el botón Atrás.
-  - CircularProgressIndicator M3 para el spinner de reconexión.
+  - MaterialButton (IconButton) para el botÃ³n AtrÃ¡s.
+  - CircularProgressIndicator M3 para el spinner de reconexiÃ³n.
   - TextAppearances alineados a Google MDC.
   - Se mantiene la estructura estricta de capas y Z-Order (elevations).
 -->
@@ -19,7 +19,7 @@
 
     <!-- ===================================================== -->
     <!-- CAPA 1 - CAPTURA DE TOQUES                            -->
-    <!-- Recibe todos los eventos táctiles (trackpad, gestos). -->
+    <!-- Recibe todos los eventos tÃ¡ctiles (trackpad, gestos). -->
     <!-- StreamViewTransformController lo escucha primero.     -->
     <!-- ===================================================== -->
     <View
@@ -32,7 +32,7 @@
         app:layout_constraintEnd_toEndOf="parent"/>
 
     <!-- ===================================================== -->
-    <!-- CAPA 2 - WRAPPER DE TRANSFORMACIÓN DEL STREAM         -->
+    <!-- CAPA 2 - WRAPPER DE TRANSFORMACIÃ“N DEL STREAM         -->
     <!-- ===================================================== -->
     <FrameLayout
         android:id="@+id/streamTransformWrapper"
@@ -45,7 +45,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- STREAM PRINCIPAL — dentro del wrapper transformable -->
+        <!-- STREAM PRINCIPAL â€” dentro del wrapper transformable -->
         <com.limelight.ui.StreamView
             android:id="@+id/surfaceView"
             android:layout_width="wrap_content"
@@ -63,13 +63,14 @@
     </FrameLayout>
 
     <!-- ===================================================== -->
-    <!-- CAPA 3 - HUD DE RENDIMIENTO                           -->
+    <!-- CAPA 3 - HUD DE RENDIMIENTO (Separado del botÃ³n AtrÃ¡s) -->
     <!-- ===================================================== -->
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/performanceOverlay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="12dp"
+        android:layout_marginTop="84dp"
+        android:layout_marginStart="16dp"
         android:background="@drawable/performance_hud_bg"
         android:fontFamily="monospace"
         android:textColor="#E6F2FF"
@@ -100,6 +101,70 @@
         app:layout_constraintEnd_toEndOf="parent"/>
 
     <!-- ===================================================== -->
+    <!-- CAPA 4.5 - INDICADOR DE ZOOM EFÃMERO                  -->
+    <!-- ===================================================== -->
+    <com.limelight.ui.viewport.ZoomIndicatorView
+        android:id="@+id/zoomIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:elevation="50dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- ===================================================== -->
+    <!-- CAPA 4.8 - PÃLDORA DYNAMIC ISLAND: MODO MOVER PANTALLA -->
+    <!-- ===================================================== -->
+    <LinearLayout
+        android:id="@+id/bannerMoveMode"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:layout_marginTop="72dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="12dp"
+        android:background="@drawable/bg_ios_glass_pill"
+        android:elevation="90dp"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_move_overlay"
+            app:tint="#30D158"
+            android:layout_marginEnd="8dp"/>
+
+        <TextView
+            android:id="@+id/txtMoveModeTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="âœ‹ Modo Mover Pantalla Activo"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="10dp"/>
+
+        <TextView
+            android:id="@+id/btnExitMoveMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FIJAR"
+            android:textColor="#0A84FF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="3dp"/>
+    </LinearLayout>
+
+    <!-- ===================================================== -->
     <!-- CAPA 5.5 - CURSOR ADAPTATIVO IA                       -->
     <!-- ===================================================== -->
     <com.limelight.ui.AdaptiveCursorView
@@ -125,12 +190,12 @@
         android:layout_height="wrap_content"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:elevation="60dp"
+        android:elevation="85dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"/>
 
     <!-- ===================================================== -->
-    <!-- CAPA 7 - SmartDisplay AI: RECONEXIÓN AUTOMÁTICA       -->
+    <!-- CAPA 7 - SmartDisplay AI: RECONEXIÃ“N AUTOMÃTICA       -->
     <!-- ===================================================== -->
     <LinearLayout
         android:id="@+id/reconnectOverlay"
@@ -179,7 +244,7 @@
     </LinearLayout>
 
     <!-- ===================================================== -->
-    <!-- CAPA 8 - MODO VERTICAL HÍBRIDO (SmartDisplay AI)      -->
+    <!-- CAPA 8 - MODO VERTICAL HÃBRIDO (SmartDisplay AI)      -->
     <!-- ===================================================== -->
     <include
         android:id="@+id/portraitHybridLayout"
@@ -204,7 +269,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Botón Atrás (Material 3 IconButton) -->
+        <!-- BotÃ³n AtrÃ¡s (Material 3 IconButton) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBackToDesktop"
             style="@style/Widget.Material3.Button.IconButton"
@@ -226,7 +291,7 @@
             android:id="@+id/fileBrowserOverlay"
             layout="@layout/overlay_file_browser" />
 
-        <!-- Modo mouse: trackpad circular neón -->
+        <!-- Modo mouse: trackpad circular neÃ³n -->
         <com.limelight.ui.MouseModeCircle
             android:id="@+id/mouseModeCircle"
             android:layout_width="200dp"
@@ -243,8 +308,8 @@
 
 
         <!-- Edge pull-tab del Taskbar (borde izquierdo).
-             Solo sobresale un pequeño tab de 6dp; deslizar hacia la derecha
-             o tocar el tab revela el botón completo. Se oculta solo. -->
+             Solo sobresale un pequeÃ±o tab de 6dp; deslizar hacia la derecha
+             o tocar el tab revela el botÃ³n completo. Se oculta solo. -->
         <FrameLayout
             android:id="@+id/overlayToolButtons"
             android:layout_width="54dp"
@@ -263,7 +328,7 @@
                 android:background="@drawable/taskbar_edge_tab_bg"
                 android:elevation="13dp" />
 
-            <!-- Botón real: empieza oculto (-48dp translateX), se desliza hacia la derecha -->
+            <!-- BotÃ³n real: empieza oculto (-48dp translateX), se desliza hacia la derecha -->
             <ImageView
                 android:id="@+id/overlayBtnTaskbar"
                 android:layout_width="48dp"
@@ -280,6 +345,28 @@
                 android:focusable="true"
                 android:translationX="-54dp"
                 app:tint="#E6ECF7" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/bannerMoveMode"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/move_mode_banner_bg"
+            android:elevation="100dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:paddingHorizontal="24dp"
+                android:text="✋ Modo Mover Pantalla Activo — Toca para fijar"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp" />
         </FrameLayout>
 
         <!-- FAB -->
@@ -307,3 +394,5 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+
