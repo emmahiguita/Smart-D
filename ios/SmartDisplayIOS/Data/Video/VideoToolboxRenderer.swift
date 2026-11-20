@@ -91,23 +91,24 @@ final class VideoToolboxRenderer {
         }
 
         var blockBuffer: CMBlockBuffer?
-        let status = avccData.withUnsafeMutableBytes { rawBuf -> OSStatus in
+        let byteCount = avccData.count
+        let status = avccData.withUnsafeBytes { rawBuf -> OSStatus in
             guard let base = rawBuf.baseAddress else { return -1 }
             var tempBlock: CMBlockBuffer?
             let createErr = CMBlockBufferCreateWithMemoryBlock(
                 allocator: kCFAllocatorDefault,
                 memoryBlock: nil,
-                blockLength: avccData.count,
+                blockLength: byteCount,
                 blockAllocator: kCFAllocatorDefault,
                 customBlockSource: nil,
                 offsetToData: 0,
-                dataLength: avccData.count,
+                dataLength: byteCount,
                 flags: 0,
                 blockBufferOut: &tempBlock
             )
             guard createErr == noErr, let block = tempBlock else { return createErr }
             let copyErr = CMBlockBufferReplaceDataBytes(
-                with: base, blockBuffer: block, offsetIntoDestination: 0, dataLength: avccData.count
+                with: base, blockBuffer: block, offsetIntoDestination: 0, dataLength: byteCount
             )
             blockBuffer = block
             return copyErr
