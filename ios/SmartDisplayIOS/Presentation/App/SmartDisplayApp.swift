@@ -13,6 +13,7 @@ final class AppContainer: ObservableObject {
     let networkMonitor = NetworkPathMonitor()
     let hostRepository: HostRepositoryProtocol
     let hostApiClient = HostApiClient()
+    let sunshinePairService = SunshinePairService()
     let discoveryService: HostDiscoveryServing
     let wakeOnLanService: WakeOnLanService
     let busClient: SmartDisplayBusClient

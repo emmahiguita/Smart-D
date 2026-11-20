@@ -526,7 +526,7 @@ def _list_windows() -> list:
     """Lista las ventanas visibles de nivel superior (la 'barra de tareas' real).
 
     Base de la Smart Taskbar: el móvil recibe las apps/ventanas abiertas de verdad.
-    Solo Windows. Devuelve [{hwnd, pid, title, minimized}].
+    Solo Windows. Devuelve [{hwnd, pid, title, minimized, rect}].
     """
     if os.name != "nt":
         return []
@@ -558,11 +558,20 @@ def _list_windows() -> list:
                 return True
             pid = wintypes.DWORD()
             user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            # Obtener posición y tamaño real de la ventana
+            wr = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(wr))
             result.append({
                 "hwnd": int(hwnd),
                 "pid": int(pid.value),
                 "title": title,
                 "minimized": bool(user32.IsIconic(hwnd)),
+                "rect": {
+                    "x": int(wr.left),
+                    "y": int(wr.top),
+                    "w": int(wr.right  - wr.left),
+                    "h": int(wr.bottom - wr.top),
+                },
             })
             return True
 
@@ -606,6 +615,190 @@ def _minimize_window(hwnd: int):
         ctypes.windll.user32.ShowWindow(hwnd, SW_MINIMIZE)
     except Exception as e:
         log.warning(f"minimize_window error: {e}")
+
+
+# ── Window Motion: mover/redimensionar sin saltos ─────────────────────────────
+
+def _move_window(hwnd: int, x: int, y: int, w: int, h: int):
+    """Mueve y redimensiona una ventana sin activarla ni cambiar su orden Z.
+
+    Flags:
+      SWP_NOACTIVATE (0x0010) — no roba el foco.
+      SWP_NOZORDER   (0x0004) — no cambia el z-order.
+    """
+    if os.name != "nt" or not hwnd:
+        return
+    try:
+        import ctypes
+        SWP_NOACTIVATE = 0x0010
+        SWP_NOZORDER   = 0x0004
+        ctypes.windll.user32.SetWindowPos(
+            hwnd, 0, int(x), int(y), int(w), int(h),
+            SWP_NOACTIVATE | SWP_NOZORDER
+        )
+    except Exception as e:
+        log.debug(f"_move_window error: {e}")
+
+
+def _get_primary_monitor_size() -> tuple:
+    """Devuelve (width, height) del monitor primario."""
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    except Exception:
+        return 1920, 1080
+
+
+def _snap_rect(zone: str) -> tuple:
+    """Calcula el rect (x, y, w, h) de una zona de snap sobre el monitor primario.
+
+    Zonas soportadas:
+      left_half | right_half | top_half | bottom_half
+      top_left_q | top_right_q | bottom_left_q | bottom_right_q
+      maximize | restore
+    """
+    mw, mh = _get_primary_monitor_size()
+    hw, hh = mw // 2, mh // 2
+    zones = {
+        "left_half":      (0,   0,   hw,  mh),
+        "right_half":     (hw,  0,   hw,  mh),
+        "top_half":       (0,   0,   mw,  hh),
+        "bottom_half":    (0,   hh,  mw,  hh),
+        "top_left_q":     (0,   0,   hw,  hh),
+        "top_right_q":    (hw,  0,   hw,  hh),
+        "bottom_left_q":  (0,   hh,  hw,  hh),
+        "bottom_right_q": (hw,  hh,  hw,  hh),
+        "maximize":       (0,   0,   mw,  mh),
+        "restore":        (mw // 4, mh // 4, hw, hh),
+    }
+    return zones.get(zone, (0, 0, mw, mh))
+
+
+class WindowMotionEngine:
+    """Motor de interpolación exponencial de ventanas a ~60 FPS.
+
+    Cada hwnd activo tiene un estado {current, target, ease}. En cada tick
+    aplica  current += (target - current) * ease  y llama a _move_window().
+    Cuando la diferencia cae bajo STOP_THRESH, fija los valores exactos y
+    marca la ventana como inactiva.
+
+    Los broadcast de reconciliación (window_moved) se envían al bus ~10 Hz.
+    """
+
+    TICK_S       = 1 / 60        # ~16.7 ms por frame
+    EASE_DRAG    = 0.65          # drag activo: muy pegado al dedo
+    EASE_SNAP    = 0.35          # snap / soltar: aterrizaje suave
+    STOP_THRESH  = 0.5           # px — umbral de convergencia
+    ACK_INTERVAL = 0.10          # s — intervalo de broadcast ACK (~10 Hz)
+
+    def __init__(self, event_loop):
+        self._loop   = event_loop
+        self._states = {}         # hwnd → dict de estado
+        self._lock   = threading.Lock()
+        self._running = False
+        self._thread  = None
+        self._last_ack = {}       # hwnd → timestamp último ACK
+
+    def start(self):
+        self._running = True
+        self._thread  = threading.Thread(target=self._run, daemon=True,
+                                         name="WindowMotionEngine")
+        self._thread.start()
+        log.info("WindowMotionEngine iniciado (60 FPS)")
+
+    def stop(self):
+        self._running = False
+
+    def set_target(self, hwnd: int, x: float, y: float,
+                   w: float, h: float, mode: str = "snap"):
+        """Define o actualiza el target de una ventana."""
+        ease = self.EASE_DRAG if mode == "drag" else self.EASE_SNAP
+        with self._lock:
+            if hwnd not in self._states:
+                # Primera vez: iniciar current desde la posición real
+                try:
+                    import ctypes
+                    from ctypes import wintypes
+                    wr = wintypes.RECT()
+                    ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(wr))
+                    cx, cy = float(wr.left), float(wr.top)
+                    cw = float(wr.right - wr.left)
+                    ch = float(wr.bottom - wr.top)
+                except Exception:
+                    cx, cy, cw, ch = x, y, w, h
+                self._states[hwnd] = {
+                    "cx": cx, "cy": cy, "cw": cw, "ch": ch,
+                    "tx": x,  "ty": y,  "tw": w,  "th": h,
+                    "ease": ease, "active": True,
+                }
+            else:
+                s = self._states[hwnd]
+                s["tx"], s["ty"], s["tw"], s["th"] = x, y, w, h
+                s["ease"]   = ease
+                s["active"] = True
+
+    def set_ease(self, hwnd: int, ease: float):
+        """Cambia el ease de una ventana en vuelo (p.ej. drag → snap al soltar)."""
+        with self._lock:
+            if hwnd in self._states:
+                self._states[hwnd]["ease"] = ease
+
+    def cancel(self, hwnd: int):
+        """Detiene inmediatamente la animación de una ventana."""
+        with self._lock:
+            if hwnd in self._states:
+                self._states[hwnd]["active"] = False
+
+    def _run(self):
+        while self._running:
+            t0 = time.perf_counter()
+            now = time.monotonic()
+            with self._lock:
+                hwnds = list(self._states.items())
+
+            for hwnd, s in hwnds:
+                if not s["active"]:
+                    continue
+                e  = s["ease"]
+                s["cx"] += (s["tx"] - s["cx"]) * e
+                s["cy"] += (s["ty"] - s["cy"]) * e
+                s["cw"] += (s["tw"] - s["cw"]) * e
+                s["ch"] += (s["th"] - s["ch"]) * e
+
+                converged = (
+                    abs(s["tx"] - s["cx"]) < self.STOP_THRESH and
+                    abs(s["ty"] - s["cy"]) < self.STOP_THRESH and
+                    abs(s["tw"] - s["cw"]) < self.STOP_THRESH and
+                    abs(s["th"] - s["ch"]) < self.STOP_THRESH
+                )
+                if converged:
+                    s["cx"], s["cy"] = s["tx"], s["ty"]
+                    s["cw"], s["ch"] = s["tw"], s["th"]
+                    s["active"] = False
+
+                _move_window(hwnd,
+                             int(s["cx"]), int(s["cy"]),
+                             int(s["cw"]), int(s["ch"]))
+
+                # Broadcast ACK ~10 Hz
+                last = self._last_ack.get(hwnd, 0)
+                if now - last >= self.ACK_INTERVAL:
+                    self._last_ack[hwnd] = now
+                    msg = {
+                        "type": "window_moved",
+                        "hwnd": hwnd,
+                        "x": int(s["cx"]), "y": int(s["cy"]),
+                        "w": int(s["cw"]), "h": int(s["ch"]),
+                    }
+                    asyncio.run_coroutine_threadsafe(bus_broadcast(msg), self._loop)
+
+            elapsed = time.perf_counter() - t0
+            time.sleep(max(0.0, self.TICK_S - elapsed))
+
+
+# Instancia global (se inicializa en main con el event loop)
+motion_engine: WindowMotionEngine | None = None
 
 
 bus_clients = set()
@@ -1021,15 +1214,185 @@ async def bus_handler(websocket, path="/"):
             elif t == "restore_audio":
                 log.info("Restaurando dispositivo de audio del PC...")
                 await asyncio.to_thread(_restore_pc_audio)
+            # ── Window Motion Engine ──────────────────────────────────────
+            elif t == "move_window":
+                if motion_engine is not None:
+                    hwnd = int(data.get("hwnd", 0))
+                    x    = float(data.get("x", 0))
+                    y    = float(data.get("y", 0))
+                    w    = float(data.get("w", 100))
+                    h    = float(data.get("h", 100))
+                    mode = data.get("mode", "snap")
+                    log.debug(f"move_window hwnd={hwnd} ({x},{y},{w}×{h}) mode={mode}")
+                    motion_engine.set_target(hwnd, x, y, w, h, mode)
+            elif t == "window_drag_end":
+                if motion_engine is not None:
+                    hwnd = int(data.get("hwnd", 0))
+                    log.debug(f"window_drag_end hwnd={hwnd}")
+                    motion_engine.set_ease(hwnd, WindowMotionEngine.EASE_SNAP)
+            elif t == "snap_window":
+                if motion_engine is not None:
+                    hwnd = int(data.get("hwnd", 0))
+                    zone = data.get("zone", "maximize")
+                    rx, ry, rw, rh = _snap_rect(zone)
+                    log.info(f"snap_window hwnd={hwnd} zone={zone} → ({rx},{ry},{rw}×{rh})")
+                    motion_engine.set_target(hwnd, rx, ry, rw, rh, "snap")
+            elif t == "swap_windows":
+                if motion_engine is not None:
+                    for entry in data.get("windows", []):
+                        motion_engine.set_target(
+                            int(entry["hwnd"]),
+                            float(entry["x"]), float(entry["y"]),
+                            float(entry["w"]), float(entry["h"]),
+                            "snap"
+                        )
+                    log.info(f"swap_windows: {len(data.get('windows', []))} ventanas")
+            elif t == "cancel_window_motion":
+                if motion_engine is not None:
+                    hwnd = int(data.get("hwnd", 0))
+                    motion_engine.cancel(hwnd)
+                    log.debug(f"cancel_window_motion hwnd={hwnd}")
+            elif t == "window_at_point":
+                # Devuelve el hwnd de la ventana bajo las coordenadas dadas del PC
+                if os.name == "nt":
+                    import ctypes
+                    from ctypes import wintypes
+                    pt = wintypes.POINT(int(data.get("x", 0)), int(data.get("y", 0)))
+                    hwnd_at = ctypes.windll.user32.WindowFromPoint(pt)
+                    await websocket.send(json.dumps({
+                        "type": "window_at_point_result",
+                        "hwnd": int(hwnd_at),
+                        "x": pt.x, "y": pt.y,
+                    }))
+            elif t == "exec_cmd":
+                cmd = data.get("cmd", "")
+                log.info(f"Terminal comando recibido: {cmd}")
+                try:
+                    proc = await asyncio.create_subprocess_shell(
+                        cmd,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=15.0)
+                    out_text = (stdout or stderr or b"").decode("utf-8", errors="replace")
+                    await websocket.send(json.dumps({
+                        "type": "cmd_result",
+                        "cmd": cmd,
+                        "exit_code": proc.returncode,
+                        "output": out_text
+                    }))
+                except Exception as ex:
+                    await websocket.send(json.dumps({
+                        "type": "cmd_result",
+                        "cmd": cmd,
+                        "exit_code": -1,
+                        "output": str(ex)
+                    }))
+            # ── Streaming directo y control de entrada multiplataforma (iOS / Android) ──
+            elif t == "start_stream":
+                if not getattr(websocket, "_sd_streaming", False):
+                    websocket._sd_streaming = True
+                    asyncio.create_task(_stream_desktop_loop(websocket))
+            elif t == "stop_stream":
+                websocket._sd_streaming = False
+            elif t == "input_move":
+                _handle_normalized_pointer(data, click=False)
+            elif t == "input_click":
+                _handle_normalized_pointer(data, click=True)
+            elif t == "input_text":
+                txt = data.get("text", "")
+                if txt:
+                    _last_clip["text"] = txt
+                    _set_pc_clipboard(txt)
+                    _paste_clipboard_keystroke()
+            elif t == "input_key":
+                _send_special_key(data.get("key", ""))
     except Exception:
         pass
     finally:
+        websocket._sd_streaming = False
         bus_clients.discard(websocket)
         log.info("Bus desconectado")
         # Sin sesión móvil → restaurar cursor del PC y audio.
         if not bus_clients:
             _set_pc_cursor_visible(True)  # Restaurar cursor del sistema
             _restore_pc_audio()            # Restaurar dispositivo de audio
+
+
+async def _stream_desktop_loop(websocket):
+    """Captura el escritorio de Windows en JPEG y lo transmite en binario por el Bus 47991."""
+    import io
+    from PIL import ImageGrab
+    while getattr(websocket, "_sd_streaming", False) and websocket in bus_clients:
+        try:
+            def _grab_jpeg():
+                shot = ImageGrab.grab()
+                shot.thumbnail((1280, 720), Image.Resampling.BILINEAR)
+                buf = io.BytesIO()
+                shot.save(buf, format="JPEG", quality=68, optimize=False)
+                return buf.getvalue()
+            frame_bytes = await asyncio.to_thread(_grab_jpeg)
+            await websocket.send(frame_bytes)
+            await asyncio.sleep(0.05)  # ~20 FPS fluidos
+        except Exception:
+            break
+
+
+def _handle_normalized_pointer(data: dict, click: bool):
+    """Posiciona el cursor de Windows en coordenadas normalizadas (0..1) y opcionalmente hace clic."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        sw = user32.GetSystemMetrics(0)
+        sh = user32.GetSystemMetrics(1)
+        nx = max(0.0, min(1.0, float(data.get("x", 0.5))))
+        ny = max(0.0, min(1.0, float(data.get("y", 0.5))))
+        px, py = int(nx * sw), int(ny * sh)
+        user32.SetCursorPos(px, py)
+        if click:
+            btn = data.get("button", "left")
+            if btn == "right":
+                user32.mouse_event(0x0008, 0, 0, 0, 0)
+                user32.mouse_event(0x0010, 0, 0, 0, 0)
+            else:
+                user32.mouse_event(0x0002, 0, 0, 0, 0)
+                user32.mouse_event(0x0004, 0, 0, 0, 0)
+    except Exception:
+        pass
+
+
+def _paste_clipboard_keystroke():
+    """Simula Ctrl+V en Windows para pegar el texto enviado desde iOS/Android."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        u = ctypes.windll.user32
+        u.keybd_event(0x11, 0, 0, 0)       # VK_CONTROL down
+        u.keybd_event(0x56, 0, 0, 0)       # 'V' down
+        u.keybd_event(0x56, 0, 0x0002, 0)  # 'V' up
+        u.keybd_event(0x11, 0, 0x0002, 0)  # VK_CONTROL up
+    except Exception:
+        pass
+
+
+def _send_special_key(key_name: str):
+    """Envía teclas especiales (escape, tab, backspace, enter) al sistema Windows."""
+    if os.name != "nt":
+        return
+    vk_map = {"escape": 0x1B, "tab": 0x09, "backspace": 0x08, "enter": 0x0D}
+    vk = vk_map.get(key_name.lower())
+    if not vk:
+        return
+    try:
+        import ctypes
+        u = ctypes.windll.user32
+        u.keybd_event(vk, 0, 0, 0)
+        u.keybd_event(vk, 0, 0x0002, 0)
+    except Exception:
+        pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1605,9 +1968,9 @@ async def hub_agent_loop(hub_url: str, identity: dict):
                 }))
                 log.info(f"Agente → Hub: registrado como {identity['name']}")
 
-                # Bucle de telemetría cada 30s
+                # Bucle de telemetría cada 15s (mantiene heartbeat WS activo < 25s)
                 while True:
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(15)
                     try:
                         import psutil
                         cpu = psutil.cpu_percent(interval=0.5)
@@ -1647,7 +2010,7 @@ async def hub_agent_loop(hub_url: str, identity: dict):
 
 async def main(host, port, hub_url=None):
     import websockets
-    global PIN, VOICE_PREFIX
+    global PIN, VOICE_PREFIX, motion_engine
     PIN = load_pin()
     if PIN:
         VOICE_PREFIX = hashlib.sha256(PIN.encode("utf-8")).digest()[:8]
@@ -1662,6 +2025,10 @@ async def main(host, port, hub_url=None):
     # Identidad del agente
     identity = load_or_create_identity()
     log.info(f"Agente: {identity['name']} ({identity['agentId'][:8]}…)")
+
+    # ── WindowMotionEngine (60 FPS, ease exponencial) ──────────────────────
+    motion_engine = WindowMotionEngine(asyncio.get_event_loop())
+    motion_engine.start()
 
     monitor = FocusMonitor(on_text_field, on_cleared)
     monitor.start()

@@ -48,6 +48,16 @@ final class SmartDisplayInputDispatcher {
         busClient.send(type: "input_key", fields: ["key": key])
     }
 
+    /// Solicita iniciar el flujo de escritorio en vivo por el Bus 47991 (`start_stream`).
+    func startDesktopStream() {
+        busClient.send(type: "start_stream")
+    }
+
+    /// Solicita detener el flujo de escritorio al cerrar la sesión (`stop_stream`).
+    func stopDesktopStream() {
+        busClient.send(type: "stop_stream")
+    }
+
     /// Solicita telemetría en vivo (CPU / RAM / GPU) al Companion Server (`companion_server.py`).
     func requestSystemStats() {
         busClient.send(type: "get_stats")

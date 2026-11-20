@@ -79,6 +79,15 @@ struct HostAppsView: View {
                     .buttonStyle(.bordered)
                 }
 
+                Button("Vincular PIN") {
+                    let pin = container.settings.voicePin.isEmpty ? "9999" : container.settings.voicePin
+                    Task {
+                        let ok = await container.sunshinePairService.submitPin(host: host.address, pin: pin)
+                        statusMessage = ok ? "PIN \(pin) vinculado en puerto 47990." : "Sin sesión pendiente en 47990."
+                    }
+                }
+                .buttonStyle(.bordered)
+
                 if (serverInfo?.currentAppId ?? 0) != 0 {
                     Button("Cerrar app", role: .destructive) {
                         Task {

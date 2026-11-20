@@ -23,15 +23,22 @@ struct StreamSessionView: View {
     @State private var controlsVisible = true
     @State private var draftText = ""
     @State private var telemetry = PcTelemetrySnapshot()
+    @State private var liveDesktopImage: UIImage?
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                // Lienzo GPU (AVSampleBufferDisplayLayer) con físicas de resorte iOS
+                // Lienzo híbrido GPU (VideoToolbox H.264 + Flujo JPEG en vivo del Companion 47991)
                 ZStack {
                     VideoToolboxCanvasView(renderer: container.videoRenderer).ignoresSafeArea()
+                    if let liveImg = liveDesktopImage {
+                        Image(uiImage: liveImg)
+                            .resizable()
+                            .scaledToFit()
+                            .ignoresSafeArea()
+                    }
                     if !hasVideoFrames { waitingPlaceholder }
                 }
                 .scaleEffect(engine.state.scale)
@@ -210,7 +217,10 @@ struct StreamSessionView: View {
         let port = container.settings.companionPort > 0 ? container.settings.companionPort : host.companionPort
         container.busClient.onConnectionChanged = { connected in
             withAnimation(IosMotion.snappy) { busConnected = connected }
-            if connected { container.inputDispatcher.requestSystemStats() }
+            if connected {
+                container.inputDispatcher.startDesktopStream()
+                container.inputDispatcher.requestSystemStats()
+            }
         }
         container.busClient.onMessage = { msg in
             if msg.type == "stats" {
@@ -223,8 +233,19 @@ struct StreamSessionView: View {
             }
         }
         container.busClient.onBinaryFrame = { frameData in
-            if !hasVideoFrames { DispatchQueue.main.async { withAnimation(IosMotion.smooth) { hasVideoFrames = true } } }
-            container.videoRenderer.enqueueAnnexBFrame(frameData)
+            guard frameData.count > 2 else { return }
+            let isJpeg = (frameData[frameData.startIndex] == 0xFF && frameData[frameData.startIndex + 1] == 0xD8)
+            if isJpeg {
+                if let decoded = UIImage(data: frameData) {
+                    DispatchQueue.main.async {
+                        liveDesktopImage = decoded
+                        if !hasVideoFrames { hasVideoFrames = true }
+                    }
+                }
+            } else {
+                if !hasVideoFrames { DispatchQueue.main.async { hasVideoFrames = true } }
+                container.videoRenderer.enqueueAnnexBFrame(frameData)
+            }
         }
         container.networkMonitor.onNetworkStatusChanged = { available in
             withAnimation(IosMotion.snappy) { networkAvailable = available }
@@ -239,9 +260,11 @@ struct StreamSessionView: View {
 
     /// Libera red, monitor, video y voz limpiamente al cerrar la sesión.
     private func endSession() {
+        container.inputDispatcher.stopDesktopStream()
         container.networkMonitor.stop()
         container.voiceService.stop()
         voiceActive = false
+        liveDesktopImage = nil
         container.busClient.onBinaryFrame = nil
         container.busClient.disconnect()
         container.videoRenderer.flush()
