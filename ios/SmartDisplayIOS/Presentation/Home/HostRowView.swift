@@ -26,7 +26,7 @@ struct HostRowView: View {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(isOnline ? DesignTokens.statusOnline.opacity(0.12) : DesignTokens.surfaceContainerHigh)
+                        .fill(isOnline ? DesignTokens.statusOnline.opacity(0.12) : DesignTokens.surfaceHigh)
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "desktopcomputer")
@@ -65,7 +65,7 @@ struct HostRowView: View {
 
             // Separador sutil
             Divider()
-                .overlay(DesignTokens.outline.opacity(0.4))
+                .overlay(DesignTokens.border.opacity(0.4))
 
             // Fila inferior: Barra de acciones claras sin interferencia
             HStack(spacing: 10) {
@@ -116,10 +116,10 @@ struct HostRowView: View {
             }
         }
         .padding(14)
-        .background(DesignTokens.surfaceContainer, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(DesignTokens.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(isOnline ? DesignTokens.accent.opacity(0.35) : DesignTokens.outline, lineWidth: 1)
+                .stroke(isOnline ? DesignTokens.accent.opacity(0.35) : DesignTokens.border, lineWidth: 1)
         )
     }
 }
