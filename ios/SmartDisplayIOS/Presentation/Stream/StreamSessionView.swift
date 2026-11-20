@@ -22,6 +22,7 @@ struct StreamSessionView: View {
     @State private var showKeyboardBar = false
     @State private var controlsVisible = true
     @State private var draftText = ""
+    @State private var telemetry = PcTelemetrySnapshot()
 
     var body: some View {
         GeometryReader { geo in
@@ -124,7 +125,9 @@ struct StreamSessionView: View {
             Circle()
                 .fill(busConnected ? DesignTokens.statusOnline : DesignTokens.statusError)
                 .frame(width: 8, height: 8)
-            Text("\(engine.state.zoomPercent)%").font(DesignTokens.monoFont).foregroundStyle(.white)
+            Text(telemetry.hasData ? "CPU \(telemetry.cpuPercent)% · RAM \(telemetry.ramPercent)% · \(engine.state.zoomPercent)%" : "\(engine.state.zoomPercent)%")
+                .font(DesignTokens.monoFont)
+                .foregroundStyle(.white)
             Spacer()
             iconBtn("minus.magnifyingglass") { withAnimation(IosMotion.smooth) { engine.zoomOut(viewportSize: viewportSize); baseScale = engine.state.scale } }
             iconBtn("plus.magnifyingglass") { withAnimation(IosMotion.smooth) { engine.zoomIn(viewportSize: viewportSize); baseScale = engine.state.scale } }
@@ -207,6 +210,17 @@ struct StreamSessionView: View {
         let port = container.settings.companionPort > 0 ? container.settings.companionPort : host.companionPort
         container.busClient.onConnectionChanged = { connected in
             withAnimation(IosMotion.snappy) { busConnected = connected }
+            if connected { container.inputDispatcher.requestSystemStats() }
+        }
+        container.busClient.onMessage = { msg in
+            if msg.type == "stats" {
+                let cpu = Int(Double(msg.payload["cpu"] ?? "") ?? 0)
+                let ram = Int(Double(msg.payload["ram"] ?? "") ?? 0)
+                let gpu = Int(Double(msg.payload["gpu"] ?? "") ?? 0)
+                withAnimation(IosMotion.snappy) {
+                    telemetry = PcTelemetrySnapshot(cpuPercent: cpu, ramPercent: ram, gpuPercent: gpu, hasData: true)
+                }
+            }
         }
         container.busClient.onBinaryFrame = { frameData in
             if !hasVideoFrames { DispatchQueue.main.async { withAnimation(IosMotion.smooth) { hasVideoFrames = true } } }

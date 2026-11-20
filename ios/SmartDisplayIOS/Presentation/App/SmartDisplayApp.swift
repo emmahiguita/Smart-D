@@ -12,6 +12,7 @@ final class AppContainer: ObservableObject {
     let logStore = AppLogStore()
     let networkMonitor = NetworkPathMonitor()
     let hostRepository: HostRepositoryProtocol
+    let hostApiClient = HostApiClient()
     let discoveryService: HostDiscoveryServing
     let wakeOnLanService: WakeOnLanService
     let busClient: SmartDisplayBusClient

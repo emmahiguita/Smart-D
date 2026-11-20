@@ -136,24 +136,31 @@ struct HostListView: View {
         let isSaved = savedHosts.contains { $0.id == host.id }
         let isOnline = host.status == .online
         return HStack(spacing: DesignTokens.spacingSM) {
-            Image(systemName: "desktopcomputer")
-                .font(.title2)
-                .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.textSecondary)
+            NavigationLink {
+                HostAppsView(host: host)
+            } label: {
+                HStack(spacing: DesignTokens.spacingSM) {
+                    Image(systemName: "desktopcomputer")
+                        .font(.title2)
+                        .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.textSecondary)
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(host.name).font(DesignTokens.sectionFont).foregroundStyle(DesignTokens.textPrimary)
-                    Text(isOnline ? "En línea" : "Sin señal")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.statusError)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(isOnline ? DesignTokens.statusOnlineBg : DesignTokens.statusErrorBg, in: Capsule())
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(host.name).font(DesignTokens.sectionFont).foregroundStyle(DesignTokens.textPrimary)
+                            Text(isOnline ? "En línea" : "Sin señal")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.statusError)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(isOnline ? DesignTokens.statusOnlineBg : DesignTokens.statusErrorBg, in: Capsule())
+                        }
+                        Text("\(host.address):\(host.companionPort)")
+                            .font(DesignTokens.monoFont)
+                            .foregroundStyle(DesignTokens.textSecondary)
+                    }
                 }
-                Text("\(host.address):\(host.companionPort)")
-                    .font(DesignTokens.monoFont)
-                    .foregroundStyle(DesignTokens.textSecondary)
             }
+            .buttonStyle(.plain)
 
             Spacer()
 
