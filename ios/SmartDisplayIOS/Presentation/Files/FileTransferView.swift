@@ -15,6 +15,7 @@ struct FileTransferView: View {
     @State private var receivedFiles: [TransferFileItem] = []
     @State private var showImporter = false
     @State private var copiedFeedback = false
+    @State private var radarPulse = false
 
     private var activePort: UInt16 {
         let configured = container.settings.fileTransferPort
@@ -72,20 +73,39 @@ struct FileTransferView: View {
 
     private var serverStatusBlock: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingSM) {
-            HStack {
-                Circle()
-                    .fill(isRunning ? DesignTokens.statusOnline : DesignTokens.textSecondary)
-                    .frame(width: 9, height: 9)
-                Text(isRunning ? "Servidor activo en red Wi-Fi" : "Servidor detenido")
-                    .font(DesignTokens.sectionFont)
+            HStack(spacing: DesignTokens.spacingMD) {
+                // Radar Wi-Fi monocromático sobrio (paridad con AirDropRadarView de Android)
+                ZStack {
+                    Circle()
+                        .stroke(DesignTokens.accent.opacity(isRunning ? 0.35 : 0.12), lineWidth: 1.5)
+                        .frame(width: 44, height: 44)
+                        .scaleEffect(radarPulse && isRunning ? 1.28 : 0.92)
+                        .opacity(radarPulse && isRunning ? 0.0 : 1.0)
+                        .animation(
+                            isRunning ? .easeOut(duration: 1.8).repeatForever(autoreverses: false) : .default,
+                            value: radarPulse
+                        )
+                    Image(systemName: "wifi")
+                        .font(.title3.weight(.medium))
+                        .foregroundStyle(isRunning ? DesignTokens.accent : DesignTokens.textSecondary)
+                        .frame(width: 38, height: 38)
+                        .background(DesignTokens.surfaceHigh, in: Circle())
+                }
+                .onAppear { radarPulse = true }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(isRunning ? "Servidor activo en red Wi-Fi" : "Servidor detenido")
+                        .font(DesignTokens.sectionFont)
+                    Text(serverUrl.isEmpty ? "Conéctate a la misma red Wi-Fi que tu PC." : serverUrl)
+                        .font(DesignTokens.monoFont)
+                        .foregroundStyle(DesignTokens.textSecondary)
+                }
             }
-            Text(serverUrl.isEmpty ? "Conéctate a la misma red Wi-Fi que tu PC." : serverUrl)
-                .font(DesignTokens.monoFont)
-                .foregroundStyle(DesignTokens.textSecondary)
 
             HStack(spacing: DesignTokens.spacingSM) {
                 Button(copiedFeedback ? "Enlace copiado" : "Copiar enlace") {
                     UIPasteboard.general.string = serverUrl
+                    IosHaptics.success(enabled: container.settings.hapticsEnabled)
                     copiedFeedback = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { copiedFeedback = false }
                 }

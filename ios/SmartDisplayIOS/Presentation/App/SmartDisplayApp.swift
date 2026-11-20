@@ -9,6 +9,7 @@ import SwiftUI
 /// Por qué: corrige el bug clásico de `ObservableObject` anidados en SwiftUI.
 final class AppContainer: ObservableObject {
     let settings = SettingsStore()
+    let logStore = AppLogStore()
     let networkMonitor = NetworkPathMonitor()
     let hostRepository: HostRepositoryProtocol
     let discoveryService: HostDiscoveryServing
@@ -50,6 +51,7 @@ struct SmartDisplayApp: App {
             HostListView()
                 .environmentObject(container)
                 .environmentObject(container.settings)
+                .environmentObject(container.logStore)
                 .tint(DesignTokens.accent)
                 .preferredColorScheme(container.settings.appearance.colorScheme)
         }
