@@ -1,0 +1,51 @@
+# Compilación automática en la nube (macOS-15 + Xcode) para SmartDisplay AI iOS.
+# Compila el binario real iOS (iphoneos) y genera SmartDisplayIOS-unsigned.ipa descargable.
+name: Build SmartDisplay iOS
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+
+      - name: Generar proyecto Xcode
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Compilar SmartDisplayIOS (iOS SDK)
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project SmartDisplayIOS.xcodeproj \
+            -scheme SmartDisplayIOS \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Empaquetar IPA sin firma (AltStore / SideStore / TrollStore)
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -R "build/Build/Products/Release-iphoneos/SmartDisplay AI.app" Payload/
+          zip -r -q SmartDisplayIOS-unsigned.ipa Payload
+
+      - name: Subir artefacto IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartDisplayIOS-unsigned-ipa
+          path: ios/SmartDisplayIOS-unsigned.ipa

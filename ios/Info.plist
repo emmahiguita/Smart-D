@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>SmartDisplay AI</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <!-- Permisos obligatorios de red local y descubrimiento Bonjour (mDNS) -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>SmartDisplay necesita acceso a la red local para descubrir tu PC, transmitir pantalla y transferir archivos por Wi-Fi.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_nvstream._tcp</string>
+        <string>_http._tcp</string>
+    </array>
+    <!-- Permiso de micrófono para el canal de voz bidireccional UDP -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>SmartDisplay usa el micrófono para enviar tu voz en tiempo real al PC anfitrión.</string>
+    <!-- Permite HTTP en red local (LAN) para Sunshine y Transferencia Wi-Fi -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+    <!-- Acceso a la carpeta SmartDisplay desde la app Archivos de iOS -->
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+    <!-- Soporte completo vertical y horizontal en iPhone y iPad -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UILaunchScreen</key>
+    <dict/>
+</dict>
+</plist>

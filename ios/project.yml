@@ -1,0 +1,33 @@
+# Especificación XcodeGen para generar SmartDisplayIOS.xcodeproj en macOS.
+# Uso en macOS: `brew install xcodegen && cd ios && xcodegen generate`
+name: SmartDisplayIOS
+options:
+  bundleIdPrefix: com.limelight.smartdisplay
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    TARGETED_DEVICE_FAMILY: "1,2" # iPhone y iPad
+    SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+
+targets:
+  SmartDisplayIOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: SmartDisplayIOS
+    info:
+      path: Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.limelight.smartdisplay.ios
+        PRODUCT_NAME: SmartDisplay AI
+        MARKETING_VERSION: "12.1"
+        CURRENT_PROJECT_VERSION: "314"
+        INFOPLIST_FILE: Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_PREVIEWS: YES
+        CODE_SIGN_STYLE: Automatic
