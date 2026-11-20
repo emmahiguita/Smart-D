@@ -31,7 +31,7 @@ struct HostDevice: Identifiable, Codable, Hashable, Sendable {
         address: String,
         port: Int = 47989,
         macAddress: String? = nil,
-        companionPort: Int = 3001,
+        companionPort: Int = 47991,
         status: HostStatus = .unknown
     ) {
         self.id = id

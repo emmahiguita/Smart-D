@@ -22,7 +22,7 @@ final class SmartDisplayBusClient {
     private let queue = DispatchQueue(label: "com.limelight.smartdisplay.bus", qos: .utility)
 
     private var host: String = ""
-    private var port: Int = 3001
+    private var port: Int = 47991
     private var token: String = ""
     private var isStopped = true
     private var retryAttempt = 0
@@ -38,8 +38,8 @@ final class SmartDisplayBusClient {
         self.session = URLSession(configuration: config)
     }
 
-    /// Inicia la conexión WebSocket hacia el PC anfitrión (soporta IPv4 e IPv6).
-    func connect(host: String, port: Int = 3001, token: String = "") {
+    /// Inicia la conexión WebSocket hacia el PC anfitrión (puerto 47991 por defecto, IPv4/IPv6).
+    func connect(host: String, port: Int = 47991, token: String = "") {
         queue.async { [weak self] in
             guard let self else { return }
             self.host = host
@@ -84,17 +84,20 @@ final class SmartDisplayBusClient {
         }
     }
 
-    /// Construye la URL IPv6-safe y abre una nueva `URLSessionWebSocketTask`.
+    /// Construye la URL IPv6-safe con cabecera `Authorization: Bearer <PIN>` (paridad con Android).
     private func openSocket() {
         stopPingTimer()
         task?.cancel(with: .goingAway, reason: nil)
 
         let formattedHost = (host.contains(":") && !host.hasPrefix("[")) ? "[\(host)]" : host
-        var urlStr = "ws://\(formattedHost):\(port)"
-        if !token.isEmpty { urlStr += "?token=\(token)" }
-        guard let url = URL(string: urlStr) else { return }
+        guard let url = URL(string: "ws://\(formattedHost):\(port)") else { return }
 
-        let newTask = session.webSocketTask(with: url)
+        var request = URLRequest(url: url)
+        if !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let newTask = session.webSocketTask(with: request)
         task = newTask
         newTask.resume()
         retryAttempt = 0

@@ -35,16 +35,27 @@ final class SmartDisplayInputDispatcher {
         ])
     }
 
-    /// Envía texto UTF-8 (desde una palabra hasta párrafos completos) al campo activo del PC.
+    /// Envía texto UTF-8 (desde una palabra hasta párrafos) sincronizando también el portapapeles del PC.
     func sendText(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .newlines)
         guard !trimmed.isEmpty else { return }
+        busClient.send(type: "clipboard", fields: ["text": trimmed])
         busClient.send(type: "input_text", fields: ["text": trimmed])
     }
 
     /// Envía una tecla especial de control (`enter`, `backspace`, `escape`, `tab`).
     func sendSpecialKey(_ key: String) {
         busClient.send(type: "input_key", fields: ["key": key])
+    }
+
+    /// Solicita telemetría en vivo (CPU / RAM / GPU) al Companion Server (`companion_server.py`).
+    func requestSystemStats() {
+        busClient.send(type: "get_stats")
+    }
+
+    /// Restaura el dispositivo de audio del PC anfitrión (`restore_audio`).
+    func restorePcAudio() {
+        busClient.send(type: "restore_audio")
     }
 
     /// Normaliza un punto en píxeles de pantalla al rango seguro `[0.0, 1.0]`.

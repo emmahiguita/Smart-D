@@ -198,7 +198,7 @@ struct HostListView: View {
     }
 
     private func probeSavedHosts() {
-        let port = container.settings.companionPort > 0 ? container.settings.companionPort : 3001
+        let port = container.settings.companionPort > 0 ? container.settings.companionPort : 47991
         for host in savedHosts {
             container.wakeOnLanService.probeTcpReachability(host: host.address, port: port) { online in
                 if let pos = savedHosts.firstIndex(where: { $0.id == host.id }) {

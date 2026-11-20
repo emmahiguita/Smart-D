@@ -29,7 +29,7 @@ final class SettingsStore: ObservableObject {
     @AppStorage("sd.hapticsEnabled") var hapticsEnabled: Bool = true
     @AppStorage("sd.autoReconnect") var autoReconnect: Bool = true
     @AppStorage("sd.voicePin") var voicePin: String = ""
-    @AppStorage("sd.companionPort") var companionPort: Int = 3001
+    @AppStorage("sd.companionPort") var companionPort: Int = 47991
     @AppStorage("sd.fileTransferPort") var fileTransferPort: Int = 8080
 
     /// Modo de apariencia tipado para enlazar directamente con `Picker` y `.preferredColorScheme`.

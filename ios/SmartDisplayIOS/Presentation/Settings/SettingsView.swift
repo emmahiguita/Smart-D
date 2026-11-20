@@ -35,7 +35,7 @@ struct SettingsView: View {
                 HStack {
                     Text("Puerto Bus")
                     Spacer()
-                    TextField("3001", value: $settings.companionPort, format: .number)
+                    TextField("47991", value: $settings.companionPort, format: .number)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 90)

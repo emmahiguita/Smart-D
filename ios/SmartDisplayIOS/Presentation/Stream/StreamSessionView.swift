@@ -219,7 +219,8 @@ struct StreamSessionView: View {
             if container.settings.autoReconnect { container.busClient.reconnectNow() }
         }
         container.networkMonitor.start()
-        container.busClient.connect(host: host.address, port: port)
+        container.logStore.log("Conectando Bus ws://\(host.address):\(port)")
+        container.busClient.connect(host: host.address, port: port, token: container.settings.voicePin)
     }
 
     /// Libera red, monitor, video y voz limpiamente al cerrar la sesión.
