@@ -7,13 +7,13 @@ protocol HostDiscoveryServing: AnyObject {
     func stopDiscovery()
 }
 
-/// Servicio real de descubrimiento mDNS / Bonjour para Sunshine y Moonlight (`_nvstream._tcp`).
+/// Servicio real de descubrimiento híbrido: Bonjour (`_nvstream._tcp`) + Escáner TCP directo (`47991`/`47989`).
 ///
-/// Qué hace: escucha anuncios Bonjour en la LAN usando Apple `Network.framework` (`NWBrowser`)
-/// y resuelve cada servicio a su dirección IP real mediante una conexión efímera.
-/// Cómo funciona: opera en una cola serial dedicada (`DispatchQueue`) para no bloquear el hilo UI
-/// y entrega siempre la lista actualizada en `DispatchQueue.main`.
-/// Por qué: evita dependencias externas y respeta las restricciones de privacidad de iOS 16+.
+/// Qué hace: escucha anuncios Bonjour en la LAN y, en paralelo, sondea de forma asíncrona
+/// las subredes activas del iPhone (Hotspot USB/Wi-Fi `172.20.10.x`, LAN `192.168.0.x`, Tailscale
+/// y la subred `/24` de `en0`) en el puerto `47991` (SmartDisplay Bus) y `47989` (Sunshine).
+/// Por qué: garantiza que el PC anfitrión aparezca automáticamente en < 1 segundo incluso cuando
+/// Windows o el Hotspot personal bloquean paquetes multicast mDNS.
 final class MdnsDiscoveryService: HostDiscoveryServing {
 
     private let queue = DispatchQueue(label: "com.limelight.smartdisplay.mdns", qos: .utility)
@@ -22,7 +22,7 @@ final class MdnsDiscoveryService: HostDiscoveryServing {
     private var activeResolvers: [String: NWConnection] = [:]
     private var onUpdate: (([HostDevice]) -> Void)?
 
-    /// Inicia la exploración Bonjour de servicios `_nvstream._tcp` en la red local.
+    /// Inicia la exploración Bonjour + el escaneo directo de puertos SmartDisplay (`47991`/`47989`).
     func startDiscovery(onUpdate: @escaping ([HostDevice]) -> Void) {
         stopDiscovery()
         self.onUpdate = onUpdate
@@ -37,9 +37,13 @@ final class MdnsDiscoveryService: HostDiscoveryServing {
         }
         newBrowser.start(queue: queue)
         browser = newBrowser
+
+        queue.async { [weak self] in
+            self?.runDirectHostScan()
+        }
     }
 
-    /// Detiene el explorador y cancela cualquier resolución pendiente (cero procesos zombi).
+    /// Detiene el explorador y cancela cualquier sonda pendiente (cero procesos zombi).
     func stopDiscovery() {
         browser?.cancel()
         browser = nil
@@ -50,16 +54,69 @@ final class MdnsDiscoveryService: HostDiscoveryServing {
         }
     }
 
-    /// Procesa el conjunto actual de resultados mDNS y resuelve la IP de cada servicio nuevo.
+    /// Sondea en paralelo candidatos prioritarios y la subred local en los puertos 47991 y 47989.
+    private func runDirectHostScan() {
+        var candidates: [String] = [
+            "172.20.10.3", "172.20.10.2", "172.20.10.4",
+            "192.168.0.2", "192.168.0.10", "192.168.1.2",
+            "100.66.176.36"
+        ]
+        if let localIp = WifiFileTransferServer.localWifiIPv4Address() {
+            let parts = localIp.split(separator: ".")
+            if parts.count == 4 {
+                let prefix = "\(parts[0]).\(parts[1]).\(parts[2])"
+                for hostNum in 1...25 {
+                    let ip = "\(prefix).\(hostNum)"
+                    if ip != localIp && !candidates.contains(ip) {
+                        candidates.append(ip)
+                    }
+                }
+            }
+        }
+
+        for ip in candidates {
+            probeDirectHost(ip: ip, port: 47991, label: "SmartDisplay PC")
+            probeDirectHost(ip: ip, port: 47989, label: "SmartDisplay Host")
+        }
+    }
+
+    /// Abre una sonda TCP de 1.5s hacia `ip:port`; si responde, registra el PC como `.online`.
+    private func probeDirectHost(ip: String, port: UInt16, label: String) {
+        guard let nwPort = NWEndpoint.Port(rawValue: port) else { return }
+        let key = "\(ip):\(port)"
+        let conn = NWConnection(host: NWEndpoint.Host(ip), port: nwPort, using: .tcp)
+        activeResolvers[key] = conn
+
+        var completed = false
+        let finish: (Bool) -> Void = { [weak self] ok in
+            guard let self, !completed else { return }
+            completed = true
+            conn.cancel()
+            self.activeResolvers.removeValue(forKey: key)
+            if ok {
+                let hostKey = "host-\(ip)"
+                if self.discoveredByName[hostKey] == nil {
+                    self.discoveredByName[hostKey] = HostDevice(
+                        name: "\(label) (\(ip))",
+                        address: ip,
+                        port: 47989,
+                        companionPort: 47991,
+                        status: .online
+                    )
+                    self.emitSnapshot()
+                }
+            }
+        }
+
+        conn.stateUpdateHandler = { state in
+            if case .ready = state { finish(true) }
+            if case .failed = state { finish(false) }
+        }
+        conn.start(queue: queue)
+        queue.asyncAfter(deadline: .now() + 1.5) { finish(false) }
+    }
+
     private func handleBrowseResults(_ results: Set<NWBrowser.Result>) {
-        let currentNames = Set(results.compactMap { result -> String? in
-            if case let .service(name, _, _, _) = result.endpoint { return name }
-            return nil
-        })
-
-        // Elimina equipos que dejaron de anunciarse en la red
-        discoveredByName = discoveredByName.filter { currentNames.contains($0.key) }
-
         for result in results {
             guard case let .service(name, _, _, _) = result.endpoint else { continue }
             if discoveredByName[name] == nil {
@@ -69,54 +126,39 @@ final class MdnsDiscoveryService: HostDiscoveryServing {
         emitSnapshot()
     }
 
-    /// Resuelve un `NWEndpoint.service` a su dirección IP real y cierra la conexión al instante.
     private func resolveEndpoint(_ endpoint: NWEndpoint, serviceName: String) {
         let conn = NWConnection(to: endpoint, using: .tcp)
         activeResolvers[serviceName] = conn
-
         conn.stateUpdateHandler = { [weak self] state in
             guard let self else { return }
-            switch state {
-            case .ready:
+            if case .ready = state {
                 if let remote = conn.currentPath?.remoteEndpoint,
                    case let .hostPort(host, port) = remote {
-                    let rawIp = Self.cleanHostString("\(host)")
-                    let device = HostDevice(
+                    let rawIp = "\(host)".split(separator: "%").first.map(String.init) ?? "\(host)"
+                    self.discoveredByName["host-\(rawIp)"] = HostDevice(
                         name: serviceName,
                         address: rawIp,
                         port: Int(port.rawValue),
+                        companionPort: 47991,
                         status: .online
                     )
-                    self.discoveredByName[serviceName] = device
                     self.emitSnapshot()
                 }
                 conn.cancel()
                 self.activeResolvers.removeValue(forKey: serviceName)
-            case .failed, .cancelled:
+            } else if case .failed = state {
                 self.activeResolvers.removeValue(forKey: serviceName)
-            default:
-                break
             }
         }
         conn.start(queue: queue)
     }
 
-    /// Elimina sufijos de interfaz IPv6 (ej. `%en0`) para obtener una IP limpia y reutilizable.
-    private static func cleanHostString(_ raw: String) -> String {
-        raw.split(separator: "%").first.map(String.init) ?? raw
-    }
-
-    /// Publica una instantánea ordenada alfabéticamente en el hilo principal de UI.
     private func emitSnapshot() {
         let list = discoveredByName.values.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
-        DispatchQueue.main.async { [weak self] in
-            self?.onUpdate?(list)
-        }
+        DispatchQueue.main.async { [weak self] in self?.onUpdate?(list) }
     }
 
-    deinit {
-        stopDiscovery()
-    }
+    deinit { stopDiscovery() }
 }

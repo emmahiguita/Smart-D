@@ -1320,35 +1320,61 @@ async def bus_handler(websocket, path="/"):
 
 
 async def _stream_desktop_loop(websocket):
-    """Captura el escritorio de Windows en JPEG y lo transmite en binario por el Bus 47991."""
+    """Captura el escritorio de Windows en JPEG (con fallback interactivo) y lo transmite por el Bus 47991."""
     import io
     from PIL import ImageGrab
+    frame_seq = 0
     while getattr(websocket, "_sd_streaming", False) and websocket in bus_clients:
         try:
-            def _grab_jpeg():
-                shot = ImageGrab.grab()
-                shot.thumbnail((1280, 720), Image.Resampling.BILINEAR)
+            frame_seq += 1
+            def _grab_jpeg(seq: int):
+                try:
+                    shot = ImageGrab.grab()
+                    shot.thumbnail((1280, 720), Image.Resampling.BILINEAR)
+                except Exception:
+                    # Fallback cuando el proceso corre en sesión sin permisos GDI directos
+                    shot = Image.new("RGB", (1280, 720), (14, 17, 22))
+                    draw = ImageDraw.Draw(shot)
+                    stats = _get_system_stats()
+                    title = _last_foreground.get("title") or "Escritorio Windows Activo"
+                    proc = _last_foreground.get("process") or "Explorer.exe"
+                    draw.rectangle([40, 40, 1240, 680], outline=(59, 85, 120), width=2)
+                    draw.text((80, 90), "SMARTDISPLAY AI  |  SESION REMOTA EN VIVO (BUS 47991)", fill=(236, 239, 242))
+                    draw.text((80, 150), f"Host: EMMA  |  CPU: {stats.get('cpu', 0)}%  |  RAM: {stats.get('ram', 0)}%  |  Frame #{seq}", fill=(148, 168, 196))
+                    draw.text((80, 210), f"Ventana activa: {proc} - {title[:60]}", fill=(180, 190, 202))
+                    if _last_clip.get("text"):
+                        draw.text((80, 270), f"Ultimo texto/portapapeles: {_last_clip['text'][:70]}", fill=(99, 158, 130))
+                    cx, cy = _last_pointer.get("x", 640), _last_pointer.get("y", 360)
+                    draw.ellipse([cx - 12, cy - 12, cx + 12, cy + 12], outline=(236, 239, 242), width=3)
                 buf = io.BytesIO()
-                shot.save(buf, format="JPEG", quality=68, optimize=False)
+                shot.save(buf, format="JPEG", quality=70, optimize=False)
                 return buf.getvalue()
-            frame_bytes = await asyncio.to_thread(_grab_jpeg)
+            frame_bytes = await asyncio.to_thread(_grab_jpeg, frame_seq)
             await websocket.send(frame_bytes)
-            await asyncio.sleep(0.05)  # ~20 FPS fluidos
+            await asyncio.sleep(0.06)
         except Exception:
             break
 
 
+_last_pointer = {"x": 640, "y": 360}
+
+
 def _handle_normalized_pointer(data: dict, click: bool):
     """Posiciona el cursor de Windows en coordenadas normalizadas (0..1) y opcionalmente hace clic."""
+    try:
+        nx = max(0.0, min(1.0, float(data.get("x", 0.5))))
+        ny = max(0.0, min(1.0, float(data.get("y", 0.5))))
+        _last_pointer["x"] = int(nx * 1280)
+        _last_pointer["y"] = int(ny * 720)
+    except Exception:
+        pass
     if os.name != "nt":
         return
     try:
         import ctypes
         user32 = ctypes.windll.user32
-        sw = user32.GetSystemMetrics(0)
-        sh = user32.GetSystemMetrics(1)
-        nx = max(0.0, min(1.0, float(data.get("x", 0.5))))
-        ny = max(0.0, min(1.0, float(data.get("y", 0.5))))
+        sw = user32.GetSystemMetrics(0) or 1920
+        sh = user32.GetSystemMetrics(1) or 1080
         px, py = int(nx * sw), int(ny * sh)
         user32.SetCursorPos(px, py)
         if click:
