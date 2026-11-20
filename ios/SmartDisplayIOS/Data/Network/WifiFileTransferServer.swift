@@ -133,7 +133,8 @@ final class WifiFileTransferServer {
 
     private func route(_ conn: NWConnection, method: String, path: String, contentType: String, body: Data) {
         if method == "GET" && (path == "/" || path.hasPrefix("/?")) {
-            sendResponse(conn, status: "200 OK", contentType: "text/html; charset=UTF-8", body: Data(buildIndexHtml().utf8))
+            let html = FileServerHtmlBuilder.buildIndexHtml(sharedItems: sharedItems)
+            sendResponse(conn, status: "200 OK", contentType: "text/html; charset=UTF-8", body: Data(html.utf8))
         } else if method == "GET" && path.hasPrefix("/dl") {
             serveDownload(conn, path: path)
         } else if method == "POST" && path.hasPrefix("/up") {
@@ -172,7 +173,7 @@ final class WifiFileTransferServer {
             return
         }
         let header = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: \(Int64(fileData.count))\r\n" +
-            "Content-Disposition: attachment; filename=\"\(Self.sanitizeFilename(item.name))\"\r\nConnection: close\r\n\r\n"
+            "Content-Disposition: attachment; filename=\"\(FileServerHtmlBuilder.sanitizeFilename(item.name))\"\r\nConnection: close\r\n\r\n"
         var payload = Data(header.utf8)
         payload.append(fileData)
         conn.send(content: payload, completion: .contentProcessed { _ in conn.cancel() })
@@ -198,43 +199,14 @@ final class WifiFileTransferServer {
         return (length, type)
     }
 
-    private func buildIndexHtml() -> String {
-        let list = sharedItems.enumerated().map { idx, item in
-            "<li><a href=\"/dl?i=\(idx)\">\(Self.escapeHtml(item.name))</a> (\(item.formattedSize))</li>"
-        }.joined()
-        return "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\"><title>SmartDisplay Files</title>" +
-            "<style>body{font-family:-apple-system,sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#111317;color:#e5e7eb}a{color:#60a5fa}button{padding:8px 16px;border:0;border-radius:8px;background:#296bc7;color:#fff}</style></head><body>" +
-            "<h1>SmartDisplay Files</h1><h2>Subir a iOS (PC → Móvil)</h2>" +
-            "<form method=\"post\" action=\"/up\" enctype=\"multipart/form-data\"><input type=\"file\" name=\"f\" multiple> <button type=\"submit\">Subir</button></form>" +
-            "<h2>Descargar de iOS (Móvil → PC)</h2>\(list.isEmpty ? "<p>Sin archivos compartidos.</p>" : "<ul>\(list)</ul>")</body></html>"
-    }
-
     /// Sanitiza nombres de archivo impidiendo Path Traversal (`..`, `.`, separadores).
     static func sanitizeFilename(_ name: String) -> String {
-        let bad = CharacterSet(charactersIn: "\\/:*?\"<>|\r\n")
-        let cleaned = name.components(separatedBy: bad).joined(separator: "_").trimmingCharacters(in: .whitespaces)
-        return (cleaned.isEmpty || cleaned == "." || cleaned == ".." || cleaned.hasPrefix("..")) ? "archivo" : cleaned
-    }
-
-    private static func escapeHtml(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;")
+        FileServerHtmlBuilder.sanitizeFilename(name)
     }
 
     /// Obtiene la dirección IPv4 activa de la interfaz Wi-Fi (`en0`).
     static func localWifiIPv4Address() -> String? {
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return nil }
-        defer { freeifaddrs(ifaddr) }
-        var ptr: UnsafeMutablePointer<ifaddrs>? = first
-        while let cur = ptr {
-            if cur.pointee.ifa_addr.pointee.sa_family == UInt8(AF_INET) && String(cString: cur.pointee.ifa_name) == "en0" {
-                var buf = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                getnameinfo(cur.pointee.ifa_addr, socklen_t(cur.pointee.ifa_addr.pointee.sa_len), &buf, socklen_t(buf.count), nil, 0, NI_NUMERICHOST)
-                return String(cString: buf)
-            }
-            ptr = cur.pointee.ifa_next
-        }
-        return nil
+        FileServerHtmlBuilder.localWifiIPv4Address()
     }
 
     deinit { stop() }

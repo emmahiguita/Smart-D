@@ -45,7 +45,22 @@ struct HostListView: View {
                         if allHosts.isEmpty {
                             emptyStateView
                         } else {
-                            ForEach(allHosts) { host in hostRow(host) }
+                            ForEach(allHosts) { host in
+                                HostRowView(
+                                    host: host,
+                                    isSaved: savedHosts.contains { $0.id == host.id },
+                                    onWakeFeedback: { msg in
+                                        feedbackMessage = msg
+                                        container.logStore.log(msg)
+                                    },
+                                    onDelete: {
+                                        savedHosts = container.hostRepository.removeHost(id: host.id)
+                                    },
+                                    onConnect: {
+                                        selectedHost = host
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -132,64 +147,6 @@ struct HostListView: View {
         .padding(.top, DesignTokens.spacingSM)
     }
 
-    private func hostRow(_ host: HostDevice) -> some View {
-        let isSaved = savedHosts.contains { $0.id == host.id }
-        let isOnline = host.status == .online
-        return HStack(spacing: DesignTokens.spacingSM) {
-            NavigationLink {
-                HostAppsView(host: host)
-            } label: {
-                HStack(spacing: DesignTokens.spacingSM) {
-                    Image(systemName: "desktopcomputer")
-                        .font(.title2)
-                        .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.textSecondary)
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Text(host.name).font(DesignTokens.sectionFont).foregroundStyle(DesignTokens.textPrimary)
-                            Text(isOnline ? "En línea" : "Sin señal")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.statusError)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(isOnline ? DesignTokens.statusOnlineBg : DesignTokens.statusErrorBg, in: Capsule())
-                        }
-                        Text("\(host.address):\(host.companionPort)")
-                            .font(DesignTokens.monoFont)
-                            .foregroundStyle(DesignTokens.textSecondary)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            if let mac = host.macAddress, !mac.isEmpty {
-                Button {
-                    container.wakeOnLanService.sendWakePacket(macAddress: mac) { ok in
-                        feedbackMessage = ok ? "Wake-on-LAN enviado a \(host.name)." : "MAC inválida."
-                        container.logStore.log(feedbackMessage ?? "")
-                    }
-                } label: { Image(systemName: "power") }
-                .buttonStyle(.bordered)
-            }
-
-            if isSaved {
-                Button(role: .destructive) {
-                    savedHosts = container.hostRepository.removeHost(id: host.id)
-                } label: { Image(systemName: "trash") }
-                .buttonStyle(.bordered)
-            }
-
-            Button("Conectar") {
-                IosHaptics.tap(enabled: container.settings.hapticsEnabled)
-                selectedHost = host
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .enterpriseSurface()
-    }
-
     private var emptyStateView: some View {
         VStack(spacing: DesignTokens.spacingSM) {
             Image(systemName: "wifi").font(.largeTitle).foregroundStyle(DesignTokens.textSecondary)
@@ -210,43 +167,6 @@ struct HostListView: View {
             container.wakeOnLanService.probeTcpReachability(host: host.address, port: port) { online in
                 if let pos = savedHosts.firstIndex(where: { $0.id == host.id }) {
                     withAnimation(IosMotion.snappy) { savedHosts[pos].status = online ? .online : .offline }
-                }
-            }
-        }
-    }
-}
-
-private struct AddHostSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    @State private var address = ""
-    @State private var macAddress = ""
-    let onSave: (HostDevice) -> Void
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Datos del equipo SmartDisplay") {
-                    TextField("Nombre (ej. PC Principal)", text: $name)
-                    TextField("Dirección IP (ej. 192.168.0.10)", text: $address)
-                        .keyboardType(.numbersAndPunctuation)
-                        .autocorrectionDisabled()
-                    TextField("MAC para Wake-on-LAN (opcional)", text: $macAddress).autocorrectionDisabled()
-                }
-            }
-            .navigationTitle("Añadir equipo")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") {
-                        let cleanIp = address.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !cleanIp.isEmpty else { return }
-                        let finalName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                        onSave(HostDevice(name: finalName.isEmpty ? cleanIp : finalName, address: cleanIp, macAddress: macAddress.isEmpty ? nil : macAddress))
-                        dismiss()
-                    }
-                    .disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }

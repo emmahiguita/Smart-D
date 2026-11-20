@@ -26,6 +26,23 @@ final class SmartDisplayInputDispatcher {
         ])
     }
 
+    /// Envía un clic secundario (clic derecho) en la posición normalizada `(x, y)`.
+    func sendRightClick(at point: CGPoint, in viewportSize: CGSize) {
+        guard let norm = normalize(point: point, in: viewportSize) else { return }
+        busClient.send(type: "input_click", fields: [
+            "x": format(norm.x),
+            "y": format(norm.y),
+            "button": "right"
+        ])
+    }
+
+    /// Envía desplazamiento de rueda de ratón (scroll vertical hacia arriba o abajo).
+    func sendScroll(deltaY: Int) {
+        busClient.send(type: "input_scroll", fields: [
+            "delta_y": "\(deltaY)"
+        ])
+    }
+
     /// Envía movimiento continuo del puntero mientras el usuario arrastra (modo ratón).
     func sendPointerMove(to point: CGPoint, in viewportSize: CGSize) {
         guard let norm = normalize(point: point, in: viewportSize) else { return }

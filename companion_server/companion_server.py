@@ -1307,6 +1307,8 @@ async def bus_handler(websocket, path="/"):
                     _paste_clipboard_keystroke()
             elif t == "input_key":
                 _send_special_key(data.get("key", ""))
+            elif t == "input_scroll":
+                _handle_scroll(data)
     except Exception:
         pass
     finally:
@@ -1389,6 +1391,21 @@ def _handle_normalized_pointer(data: dict, click: bool):
         pass
 
 
+def _handle_scroll(data: dict):
+    """Simula desplazamiento de rueda del ratón (scroll) en Windows."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        dy = int(data.get("delta_y", 0))
+        if dy != 0:
+            # 0x0800 = MOUSEEVENTF_WHEEL
+            user32.mouse_event(0x0800, 0, 0, dy, 0)
+    except Exception:
+        pass
+
+
 def _paste_clipboard_keystroke():
     """Simula Ctrl+V en Windows para pegar el texto enviado desde iOS/Android."""
     if os.name != "nt":
@@ -1405,18 +1422,33 @@ def _paste_clipboard_keystroke():
 
 
 def _send_special_key(key_name: str):
-    """Envía teclas especiales (escape, tab, backspace, enter) al sistema Windows."""
+    """Envía teclas especiales (escape, tab, backspace, enter, win, atajos) al sistema Windows."""
     if os.name != "nt":
         return
-    vk_map = {"escape": 0x1B, "tab": 0x09, "backspace": 0x08, "enter": 0x0D}
-    vk = vk_map.get(key_name.lower())
-    if not vk:
-        return
+    k = key_name.lower()
     try:
         import ctypes
         u = ctypes.windll.user32
-        u.keybd_event(vk, 0, 0, 0)
-        u.keybd_event(vk, 0, 0x0002, 0)
+        if k == "ctrl_c":
+            u.keybd_event(0x11, 0, 0, 0)
+            u.keybd_event(0x43, 0, 0, 0)
+            u.keybd_event(0x43, 0, 0x0002, 0)
+            u.keybd_event(0x11, 0, 0x0002, 0)
+            return
+        if k == "ctrl_v":
+            u.keybd_event(0x11, 0, 0, 0)
+            u.keybd_event(0x56, 0, 0, 0)
+            u.keybd_event(0x56, 0, 0x0002, 0)
+            u.keybd_event(0x11, 0, 0x0002, 0)
+            return
+        vk_map = {
+            "escape": 0x1B, "tab": 0x09, "backspace": 0x08, "enter": 0x0D,
+            "win": 0x5B, "space": 0x20, "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27
+        }
+        vk = vk_map.get(k)
+        if vk:
+            u.keybd_event(vk, 0, 0, 0)
+            u.keybd_event(vk, 0, 0x0002, 0)
     except Exception:
         pass
 
