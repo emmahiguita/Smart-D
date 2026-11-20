@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Componente de fila de equipo SmartDisplay (paridad visual y funcional 1:1 con `HostItemView` de Android).
+/// Tarjeta de equipo SmartDisplay (Diseño Material 3 adaptativo sin solapamientos).
 ///
-/// Qué hace: renderiza la tarjeta del PC con su estado en vivo (`.online` / `.offline`),
-/// dirección IP y puerto del Bus, botón Wake-on-LAN para arranque remoto, botón de borrado
-/// y botón prominente 'Conectar' con respuesta háptica.
-/// Por qué: cumple el principio de Responsabilidad Única (SRP) reduciendo la complejidad de `HostListView`.
+/// Qué hace: renderiza la información del equipo en un diseño jerárquico de dos niveles
+/// (cabecera con icono, nombre, IP y pastilla de estado; y barra inferior de acciones con encendido,
+/// borrado y botón principal 'Conectar').
+/// Por qué: elimina completamente el solapamiento horizontal de iconos y textos en pantallas de iPhone.
 struct HostRowView: View {
 
     @EnvironmentObject private var container: AppContainer
@@ -21,66 +21,105 @@ struct HostRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: DesignTokens.spacingSM) {
-            NavigationLink {
-                HostAppsView(host: host)
-            } label: {
-                HStack(spacing: DesignTokens.spacingSM) {
+        VStack(alignment: .leading, spacing: 14) {
+            // Fila superior: Icono + Información del PC + Pastilla de Estado
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(isOnline ? DesignTokens.statusOnline.opacity(0.12) : DesignTokens.surfaceContainerHigh)
+                        .frame(width: 44, height: 44)
+
                     Image(systemName: "desktopcomputer")
-                        .font(.title2)
+                        .font(.system(size: 20, weight: .medium))
                         .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.textSecondary)
+                }
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Text(host.name)
-                                .font(DesignTokens.sectionFont)
-                                .foregroundStyle(DesignTokens.textPrimary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(host.name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(DesignTokens.textPrimary)
+                        .lineLimit(1)
 
-                            Text(isOnline ? "En línea" : "Sin señal")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.statusError)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(isOnline ? DesignTokens.statusOnlineBg : DesignTokens.statusErrorBg, in: Capsule())
+                    Text("\(host.address) · Puerto \(host.companionPort)")
+                        .font(DesignTokens.monoFont)
+                        .foregroundStyle(DesignTokens.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                // Pastilla de estado aislada a la derecha
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(isOnline ? DesignTokens.statusOnline : DesignTokens.statusError)
+                        .frame(width: 7, height: 7)
+
+                    Text(isOnline ? "En línea" : "Sin señal")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(isOnline ? DesignTokens.statusOnline : DesignTokens.statusError)
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(isOnline ? DesignTokens.statusOnlineBg : DesignTokens.statusErrorBg, in: Capsule())
+            }
+
+            // Separador sutil
+            Divider()
+                .overlay(DesignTokens.outline.opacity(0.4))
+
+            // Fila inferior: Barra de acciones claras sin interferencia
+            HStack(spacing: 10) {
+                if let mac = host.macAddress, !mac.isEmpty {
+                    Button {
+                        container.wakeOnLanService.sendWakePacket(macAddress: mac) { ok in
+                            let msg = ok ? "Wake-on-LAN enviado a \(host.name)." : "MAC inválida."
+                            onWakeFeedback(msg)
                         }
-
-                        Text("\(host.address):\(host.companionPort)")
-                            .font(DesignTokens.monoFont)
-                            .foregroundStyle(DesignTokens.textSecondary)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "power")
+                            Text("Encender")
+                        }
+                        .font(.system(size: 12, weight: .medium))
                     }
+                    .buttonStyle(.bordered)
                 }
-            }
-            .buttonStyle(.plain)
 
-            Spacer()
+                if isSaved {
+                    Button(role: .destructive) {
+                        onDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .buttonStyle(.bordered)
+                }
 
-            if let mac = host.macAddress, !mac.isEmpty {
+                Spacer()
+
                 Button {
-                    container.wakeOnLanService.sendWakePacket(macAddress: mac) { ok in
-                        let msg = ok ? "Wake-on-LAN enviado a \(host.name)." : "MAC inválida."
-                        onWakeFeedback(msg)
+                    IosHaptics.tap(enabled: container.settings.hapticsEnabled)
+                    onConnect()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Conectar")
+                            .font(.system(size: 14, weight: .semibold))
                     }
-                } label: {
-                    Image(systemName: "power")
+                    .foregroundStyle(DesignTokens.onAccent)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(DesignTokens.accent, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(IosPressButtonStyle())
             }
-
-            if isSaved {
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.bordered)
-            }
-
-            Button("Conectar") {
-                IosHaptics.tap(enabled: container.settings.hapticsEnabled)
-                onConnect()
-            }
-            .buttonStyle(.borderedProminent)
         }
-        .enterpriseSurface()
+        .padding(14)
+        .background(DesignTokens.surfaceContainer, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(isOnline ? DesignTokens.accent.opacity(0.35) : DesignTokens.outline, lineWidth: 1)
+        )
     }
 }

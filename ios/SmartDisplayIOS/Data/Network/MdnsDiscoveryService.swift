@@ -18,11 +18,12 @@ final class MdnsDiscoveryService: HostDiscoveryServing {
 
     private let queue = DispatchQueue(label: "com.limelight.smartdisplay.mdns", qos: .utility)
     private var browser: NWBrowser?
+    private var scanTimer: DispatchSourceTimer?
     private var discoveredByName: [String: HostDevice] = [:]
     private var activeResolvers: [String: NWConnection] = [:]
     private var onUpdate: (([HostDevice]) -> Void)?
 
-    /// Inicia la exploración Bonjour + el escaneo directo de puertos SmartDisplay (`47991`/`47989`).
+    /// Inicia la exploración Bonjour + el escaneo directo continuo de puertos SmartDisplay (`47991`/`47989`).
     func startDiscovery(onUpdate: @escaping ([HostDevice]) -> Void) {
         stopDiscovery()
         self.onUpdate = onUpdate
@@ -38,13 +39,19 @@ final class MdnsDiscoveryService: HostDiscoveryServing {
         newBrowser.start(queue: queue)
         browser = newBrowser
 
-        queue.async { [weak self] in
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now(), repeating: 4.0)
+        timer.setEventHandler { [weak self] in
             self?.runDirectHostScan()
         }
+        timer.resume()
+        scanTimer = timer
     }
 
-    /// Detiene el explorador y cancela cualquier sonda pendiente (cero procesos zombi).
+    /// Detiene el explorador y el temporizador periódico sin dejar tareas zombi.
     func stopDiscovery() {
+        scanTimer?.cancel()
+        scanTimer = nil
         browser?.cancel()
         browser = nil
         queue.async { [weak self] in
@@ -113,7 +120,7 @@ final class MdnsDiscoveryService: HostDiscoveryServing {
             if case .failed = state { finish(false) }
         }
         conn.start(queue: queue)
-        queue.asyncAfter(deadline: .now() + 1.5) { finish(false) }
+        queue.asyncAfter(deadline: .now() + 3.0) { finish(false) }
     }
 
     private func handleBrowseResults(_ results: Set<NWBrowser.Result>) {

@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// Barra de control superior flotante estilo cápsula (Material 3) para la sesión remota de SmartDisplay iOS.
+/// Barra de control superior flotante de dos islas para SmartDisplay iOS (sin solapamiento de iconos).
 ///
-/// Qué hace: muestra telemetría en vivo (CPU / RAM / Zoom), estado del Bus WebSocket,
-/// y botones de acción rápida para zoom, modo de arrastre, teclado virtual, intercomunicador y cierre.
-/// Cómo funciona: utiliza material translúcido `.ultraThinMaterial` y respuesta háptica en cada interacción.
-/// Por qué: cumple el principio de Responsabilidad Única (SRP) simplificando el árbol de vistas de `StreamSessionView`.
+/// Qué hace: separa el estado/telemetría (isla izquierda) de los botones de acción rápida y menú (isla derecha),
+/// garantizando que en cualquier ancho de pantalla (desde iPhone SE hasta iPad Pro) nunca colisionen.
+/// Cómo funciona: implementa un menú contextual `Menu` para acciones secundarias (zoom fino, modo mover)
+/// y botones prioritarios para teclado virtual, micrófono de voz y salida rápida.
+/// Por qué: cumple el principio de Responsabilidad Única (SRP) y elimina bugs de solapamiento visual.
 struct StreamTopBar: View {
 
     @EnvironmentObject private var container: AppContainer
@@ -27,34 +28,71 @@ struct StreamTopBar: View {
     let onClose: () -> Void
 
     var body: some View {
-        HStack(spacing: DesignTokens.spacingXS) {
-            Circle()
-                .fill(busConnected ? DesignTokens.statusOnline : DesignTokens.statusError)
-                .frame(width: 8, height: 8)
+        HStack(spacing: 8) {
+            // Isla izquierda: Telemetría y estado de conexión
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(busConnected ? DesignTokens.statusOnline : DesignTokens.statusError)
+                    .frame(width: 8, height: 8)
 
-            Text(telemetryText)
-                .font(DesignTokens.monoFont)
-                .foregroundStyle(.white)
+                Text(telemetryText)
+                    .font(DesignTokens.monoFont)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(.ultraThinMaterial, in: Capsule())
 
-            Spacer()
+            Spacer(minLength: 4)
 
-            controlBtn("minus.magnifyingglass") { onZoomOut() }
-            controlBtn("plus.magnifyingglass") { onZoomIn() }
-            controlBtn("arrow.up.left.and.arrow.down.right") { onResetZoom() }
-            controlBtn(isMoveMode ? "hand.draw.fill" : "hand.draw") { onToggleMoveMode() }
-            controlBtn(isKeyboardOpen ? "keyboard.chevron.compact.down" : "keyboard") { onToggleKeyboard() }
-            controlBtn(isVoiceActive ? "mic.fill" : "mic.slash") { onToggleVoice() }
-            controlBtn("chevron.up") { onCollapse() }
-            controlBtn("xmark") { onClose() }
+            // Isla derecha: Controles principales + Menú de opciones
+            HStack(spacing: 4) {
+                controlBtn(isKeyboardOpen ? "keyboard.chevron.compact.down" : "keyboard") {
+                    onToggleKeyboard()
+                }
+
+                controlBtn(isVoiceActive ? "mic.fill" : "mic.slash") {
+                    onToggleVoice()
+                }
+
+                Menu {
+                    Button(isMoveMode ? "Desactivar modo mover" : "Activar modo mover", systemImage: "hand.draw") {
+                        onToggleMoveMode()
+                    }
+                    Button("Acercar (+)", systemImage: "plus.magnifyingglass") {
+                        onZoomIn()
+                    }
+                    Button("Alejar (-)", systemImage: "minus.magnifyingglass") {
+                        onZoomOut()
+                    }
+                    Button("Restablecer zoom (100%)", systemImage: "arrow.up.left.and.arrow.down.right") {
+                        onResetZoom()
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                }
+
+                controlBtn("chevron.up") {
+                    onCollapse()
+                }
+
+                controlBtn("xmark") {
+                    onClose()
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(.ultraThinMaterial, in: Capsule())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
     }
 
     private var telemetryText: String {
         if telemetry.hasData {
-            return "CPU \(telemetry.cpuPercent)% · RAM \(telemetry.ramPercent)% · \(zoomPercent)%"
+            return "CPU \(telemetry.cpuPercent)% · \(zoomPercent)%"
         } else {
             return "\(zoomPercent)%"
         }
@@ -66,7 +104,7 @@ struct StreamTopBar: View {
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.white)
                 .frame(width: 28, height: 28)
         }

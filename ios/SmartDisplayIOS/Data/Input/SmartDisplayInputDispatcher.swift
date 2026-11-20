@@ -85,12 +85,29 @@ final class SmartDisplayInputDispatcher {
         busClient.send(type: "restore_audio")
     }
 
-    /// Normaliza un punto en píxeles de pantalla al rango seguro `[0.0, 1.0]`.
+    /// Normaliza un punto táctil compensando el letterbox/pillarbox 16:9 para precisión 1:1 con Windows.
     private func normalize(point: CGPoint, in size: CGSize) -> CGPoint? {
         guard size.width > 0, size.height > 0 else { return nil }
-        let nx = min(max(point.x / size.width, 0.0), 1.0)
-        let ny = min(max(point.y / size.height, 0.0), 1.0)
-        return CGPoint(x: nx, y: ny)
+        let aspect: CGFloat = 16.0 / 9.0
+        let viewportAspect = size.width / size.height
+        var drawW = size.width
+        var drawH = size.height
+        var originX: CGFloat = 0
+        var originY: CGFloat = 0
+
+        if viewportAspect > aspect {
+            drawW = size.height * aspect
+            originX = (size.width - drawW) / 2.0
+        } else {
+            drawH = size.width / aspect
+            originY = (size.height - drawH) / 2.0
+        }
+
+        let clampedX = min(max(point.x, originX), originX + drawW)
+        let clampedY = min(max(point.y, originY), originY + drawH)
+        let nx = drawW > 0 ? (clampedX - originX) / drawW : 0.5
+        let ny = drawH > 0 ? (clampedY - originY) / drawH : 0.5
+        return CGPoint(x: min(max(nx, 0.0), 1.0), y: min(max(ny, 0.0), 1.0))
     }
 
     private func format(_ value: CGFloat) -> String {

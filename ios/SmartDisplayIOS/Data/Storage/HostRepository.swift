@@ -23,13 +23,19 @@ final class HostRepository: HostRepositoryProtocol {
         self.defaults = defaults
     }
 
-    /// Lee la lista de equipos persistidos; retorna vacío si no existe o está corrupta.
+    /// Lee la lista de equipos persistidos; inicializa con la PC local si es la primera apertura.
     func loadSavedHosts() -> [HostDevice] {
-        guard let data = defaults.data(forKey: storageKey),
-              let hosts = try? JSONDecoder().decode([HostDevice].self, from: data) else {
-            return []
+        if let data = defaults.data(forKey: storageKey),
+           let hosts = try? JSONDecoder().decode([HostDevice].self, from: data),
+           !hosts.isEmpty {
+            return hosts
         }
-        return hosts
+        let defaultsHosts: [HostDevice] = [
+            HostDevice(name: "PC Principal (Wi-Fi)", address: "192.168.0.2", port: 47989, companionPort: 47991, status: .offline),
+            HostDevice(name: "PC Cable USB (Hotspot)", address: "172.20.10.3", port: 47989, companionPort: 47991, status: .offline)
+        ]
+        persist(defaultsHosts)
+        return defaultsHosts
     }
 
     /// Inserta o actualiza un equipo (por `id` o `address`) y persiste la lista actualizada.

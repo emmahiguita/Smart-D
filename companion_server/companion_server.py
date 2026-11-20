@@ -1159,6 +1159,9 @@ async def bus_handler(websocket, path="/"):
         return
     bus_clients.add(websocket)
     log.info(f"Bus conectado: {websocket.remote_address}")
+    # Iniciar flujo de escritorio inmediatamente al conectar el cliente móvil
+    websocket._sd_streaming = True
+    asyncio.create_task(_stream_desktop_loop(websocket))
     # Primera sesión móvil → ocultar cursor del PC.
     if len(bus_clients) == 1:
         _set_pc_cursor_visible(False)   # El AdaptiveCursorView será el único cursor
@@ -1322,19 +1325,34 @@ async def bus_handler(websocket, path="/"):
 
 
 async def _stream_desktop_loop(websocket):
-    """Captura el escritorio de Windows en JPEG (con fallback interactivo) y lo transmite por el Bus 47991."""
-    import io
-    from PIL import ImageGrab
+    """Captura el escritorio de Windows en tiempo real (DXGI/GDI/Pillow con OpenInputDesktop) y transmite JPEG continuo por el Bus 47991."""
+    import io, ctypes
+    from PIL import Image, ImageGrab, ImageDraw
+    user32 = ctypes.windll.user32 if os.name == "nt" else None
     frame_seq = 0
+    log.info(f"Iniciando streaming de escritorio en vivo hacia {websocket.remote_address}")
     while getattr(websocket, "_sd_streaming", False) and websocket in bus_clients:
         try:
             frame_seq += 1
             def _grab_jpeg(seq: int):
-                try:
-                    shot = ImageGrab.grab()
-                    shot.thumbnail((1280, 720), Image.Resampling.BILINEAR)
-                except Exception:
-                    # Fallback cuando el proceso corre en sesión sin permisos GDI directos
+                shot = None
+                if user32:
+                    try:
+                        hdesk = user32.OpenInputDesktop(0, False, 0x01FF)
+                        if hdesk:
+                            user32.SetThreadDesktop(hdesk)
+                            try:
+                                shot = ImageGrab.grab()
+                            finally:
+                                user32.CloseDesktop(hdesk)
+                    except Exception:
+                        pass
+                if shot is None:
+                    try:
+                        shot = ImageGrab.grab()
+                    except Exception:
+                        pass
+                if shot is None:
                     shot = Image.new("RGB", (1280, 720), (14, 17, 22))
                     draw = ImageDraw.Draw(shot)
                     stats = _get_system_stats()
@@ -1348,13 +1366,18 @@ async def _stream_desktop_loop(websocket):
                         draw.text((80, 270), f"Ultimo texto/portapapeles: {_last_clip['text'][:70]}", fill=(99, 158, 130))
                     cx, cy = _last_pointer.get("x", 640), _last_pointer.get("y", 360)
                     draw.ellipse([cx - 12, cy - 12, cx + 12, cy + 12], outline=(236, 239, 242), width=3)
+                else:
+                    if shot.size != (1280, 720):
+                        shot.thumbnail((1280, 720), Image.Resampling.BILINEAR)
                 buf = io.BytesIO()
-                shot.save(buf, format="JPEG", quality=70, optimize=False)
+                shot.save(buf, format="JPEG", quality=75, optimize=False)
                 return buf.getvalue()
+
             frame_bytes = await asyncio.to_thread(_grab_jpeg, frame_seq)
             await websocket.send(frame_bytes)
-            await asyncio.sleep(0.06)
-        except Exception:
+            await asyncio.sleep(0.04)
+        except Exception as ex:
+            log.warning(f"Error en _stream_desktop_loop: {ex}")
             break
 
 

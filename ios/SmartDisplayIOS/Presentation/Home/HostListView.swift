@@ -76,22 +76,39 @@ struct HostListView: View {
                         Image("BrandLogo")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 26, height: 26)
+                            .frame(width: 24, height: 24)
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        Text("SmartDisplay AI")
-                            .font(DesignTokens.titleFont)
+                        Text("SmartDisplay")
+                            .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(DesignTokens.textPrimary)
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    NavigationLink { FileTransferView() } label: { Image(systemName: "arrow.up.arrow.down.circle") }
-                    NavigationLink { DiagnosticsView() } label: { Image(systemName: "waveform.path.ecg") }
-                    NavigationLink { ManualView() } label: { Image(systemName: "book") }
-                    NavigationLink { SettingsView() } label: { Image(systemName: "gearshape") }
                     Button {
                         IosHaptics.tap(enabled: container.settings.hapticsEnabled)
                         showAddSheet = true
-                    } label: { Image(systemName: "plus") }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+
+                    Menu {
+                        NavigationLink { FileTransferView() } label: {
+                            Label("Archivos Wi-Fi", systemImage: "arrow.up.arrow.down.circle")
+                        }
+                        NavigationLink { DiagnosticsView() } label: {
+                            Label("Diagnóstico", systemImage: "waveform.path.ecg")
+                        }
+                        NavigationLink { ManualView() } label: {
+                            Label("Manual", systemImage: "book")
+                        }
+                        NavigationLink { SettingsView() } label: {
+                            Label("Ajustes", systemImage: "gearshape")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 16, weight: .medium))
+                    }
                 }
             }
             .sheet(isPresented: $showAddSheet) {
