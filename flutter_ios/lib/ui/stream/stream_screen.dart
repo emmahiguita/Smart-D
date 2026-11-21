@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/host_device.dart';
 import '../../services/bus_client.dart';
+import '../../services/focus_client.dart';
 import '../../services/input_dispatcher.dart';
 import 'stream_canvas.dart';
 import 'stream_keyboard_dock.dart';
@@ -32,9 +33,11 @@ class StreamScreen extends StatefulWidget {
 
 class _StreamScreenState extends State<StreamScreen> {
   final _bus = BusClient();
+  final _focus = FocusClient();
   late final _dispatcher = InputDispatcher(_bus);
 
   StreamSubscription<bool>? _connSub;
+  StreamSubscription<bool>? _focusSub;
   StreamSubscription<Uint8List>? _frameSub;
   StreamSubscription<Map<String, dynamic>>? _msgSub;
 
@@ -67,16 +70,22 @@ class _StreamScreenState extends State<StreamScreen> {
       final ram = (num.tryParse('${msg['ram'] ?? 0}') ?? 0).round();
       setState(() => _telemetry = TelemetrySnapshot(cpuPercent: cpu, ramPercent: ram, hasData: true));
     });
+    _focusSub = _focus.onTextFocusChanged.listen((isText) {
+      if (mounted && isText && !_showKbd) setState(() => _showKbd = true);
+    });
     final port = widget.settings.companionPort > 0 ? widget.settings.companionPort : widget.host.companionPort;
     _bus.connect(host: widget.host.address, port: port, pin: widget.settings.pin);
+    _focus.connect(host: widget.host.address, pin: widget.settings.pin);
   }
 
   @override
   void dispose() {
     _dispatcher.stopStream();
     _connSub?.cancel();
+    _focusSub?.cancel();
     _frameSub?.cancel();
     _msgSub?.cancel();
+    _focus.dispose();
     _bus.dispose();
     super.dispose();
   }
@@ -117,27 +126,14 @@ class _StreamScreenState extends State<StreamScreen> {
                   hostAddress: widget.host.address,
                   scale: _scale,
                   offset: _offset,
-                  onTap: (pt) {
-                    if (_moveMode) return;
-                    _lastTouch = pt;
-                    _dispatcher.sendTap(_mapToContent(pt, vp), vp);
-                  },
-                  onDoubleTap: (pt) {
-                    if (_moveMode) return;
-                    _lastTouch = pt;
-                    _dispatcher.sendDoubleTap(_mapToContent(pt, vp), vp);
-                  },
+                  onTap: (pt) { if (!_moveMode) { _lastTouch = pt; _dispatcher.sendTap(_mapToContent(pt, vp), vp); } },
+                  onDoubleTap: (pt) { if (!_moveMode) { _lastTouch = pt; _dispatcher.sendDoubleTap(_mapToContent(pt, vp), vp); } },
                   onLongPress: (pt) {
                     if (_moveMode) return;
                     if (widget.settings.haptics) HapticFeedback.mediumImpact();
-                    _lastTouch = pt;
-                    _dispatcher.sendRightClick(_mapToContent(pt, vp), vp);
+                    _lastTouch = pt; _dispatcher.sendRightClick(_mapToContent(pt, vp), vp);
                   },
-                  onScaleStart: (d) {
-                    _baseScale = _scale;
-                    _lastFocal = d.localFocalPoint;
-                    _lastTouch = d.localFocalPoint;
-                  },
+                  onScaleStart: (d) { _baseScale = _scale; _lastFocal = d.localFocalPoint; _lastTouch = d.localFocalPoint; },
                   onScaleUpdate: (d) {
                     final delta = d.localFocalPoint - _lastFocal;
                     _lastFocal = d.localFocalPoint;

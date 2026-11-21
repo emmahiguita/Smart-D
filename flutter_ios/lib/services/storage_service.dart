@@ -13,6 +13,15 @@ import '../models/host_device.dart';
 
 class StorageService {
   static Directory _docsDir() {
+    if (Platform.isAndroid) {
+      final dir = Directory('/data/user/0/com.limelight.smartdisplay.smartdisplay_ios/files');
+      try {
+        if (!dir.existsSync()) dir.createSync(recursive: true);
+        return dir;
+      } catch (_) {
+        return Directory.systemTemp;
+      }
+    }
     final home = Platform.environment['HOME'] ?? Directory.systemTemp.path;
     final dir = Directory('$home/Documents');
     if (!dir.existsSync()) dir.createSync(recursive: true);
