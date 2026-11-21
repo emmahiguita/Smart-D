@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// Barra de control superior flotante de dos islas para SmartDisplay iOS (sin solapamiento de iconos).
+/// Barra de control superior flotante de dos islas para SmartDisplay iOS (sin deformación ni solapamiento).
 ///
-/// Qué hace: separa el estado/telemetría (isla izquierda) de los botones de acción rápida y menú (isla derecha),
-/// garantizando que en cualquier ancho de pantalla (desde iPhone SE hasta iPad Pro) nunca colisionen.
-/// Cómo funciona: implementa un menú contextual `Menu` para acciones secundarias (zoom fino, modo mover)
-/// y botones prioritarios para teclado virtual, micrófono de voz y salida rápida.
-/// Por qué: cumple el principio de Responsabilidad Única (SRP) y elimina bugs de solapamiento visual.
+/// Qué hace: separa el estado y telemetría (isla izquierda) de los botones de control (isla derecha),
+/// fijando una altura exacta de 36pt con material translúcido `.ultraThinMaterial` en cápsula nativa.
+/// Por qué: impide cualquier distorsión elíptica o desbordamiento en pantallas de cualquier tamaño.
 struct StreamTopBar: View {
 
     @EnvironmentObject private var container: AppContainer
@@ -29,7 +27,7 @@ struct StreamTopBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Isla izquierda: Telemetría y estado de conexión
+            // Isla izquierda: Telemetría y estado de enlace
             HStack(spacing: 6) {
                 Circle()
                     .fill(busConnected ? DesignTokens.statusOnline : DesignTokens.statusError)
@@ -41,13 +39,13 @@ struct StreamTopBar: View {
                     .lineLimit(1)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .frame(height: 36)
             .background(.ultraThinMaterial, in: Capsule())
 
             Spacer(minLength: 4)
 
-            // Isla derecha: Controles principales + Menú de opciones
-            HStack(spacing: 4) {
+            // Isla derecha: Controles principales y menú desbordado
+            HStack(spacing: 2) {
                 controlBtn(isKeyboardOpen ? "keyboard.chevron.compact.down" : "keyboard") {
                     onToggleKeyboard()
                 }
@@ -73,7 +71,7 @@ struct StreamTopBar: View {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 32, height: 32)
                 }
 
                 controlBtn("chevron.up") {
@@ -84,10 +82,11 @@ struct StreamTopBar: View {
                     onClose()
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 6)
+            .frame(height: 36)
             .background(.ultraThinMaterial, in: Capsule())
         }
+        .frame(height: 38)
     }
 
     private var telemetryText: String {
@@ -106,7 +105,7 @@ struct StreamTopBar: View {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.white)
-                .frame(width: 28, height: 28)
+                .frame(width: 32, height: 32)
         }
         .buttonStyle(IosPressButtonStyle())
     }

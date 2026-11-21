@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Pantalla principal de SmartDisplay AI para iOS — Paridad visual y funcional 1:1 con Android `PcView`.
+/// Pantalla principal de SmartDisplay AI para iOS — Paridad 1:1 con Android `PcView`.
 ///
-/// Qué hace: muestra el logotipo oficial `BrandLogo`, el botón circular rápido de inicio
-/// (92pt Material 3), los equipos descubiertos por Bonjour y los persistidos en `HostRepository`
-/// con sonda TCP en vivo, Wake-on-LAN y acceso a Archivos, Diagnóstico, Manual y Ajustes.
+/// Muestra el logotipo `BrandLogo`, el botón circular rápido de inicio (92pt plano Material 3),
+/// los equipos descubiertos y los persistidos en `HostRepository` con sonda TCP en vivo y WOL.
 struct HostListView: View {
 
     @EnvironmentObject private var container: AppContainer
@@ -53,12 +52,8 @@ struct HostListView: View {
                                         feedbackMessage = msg
                                         container.logStore.log(msg)
                                     },
-                                    onDelete: {
-                                        savedHosts = container.hostRepository.removeHost(id: host.id)
-                                    },
-                                    onConnect: {
-                                        selectedHost = host
-                                    }
+                                    onDelete: { savedHosts = container.hostRepository.removeHost(id: host.id) },
+                                    onConnect: { selectedHost = host }
                                 )
                             }
                         }
@@ -74,9 +69,7 @@ struct HostListView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     HStack(spacing: 8) {
                         Image("BrandLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24)
+                            .resizable().scaledToFit().frame(width: 24, height: 24)
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                         Text("SmartDisplay")
                             .font(.system(size: 18, weight: .bold))
@@ -87,28 +80,14 @@ struct HostListView: View {
                     Button {
                         IosHaptics.tap(enabled: container.settings.hapticsEnabled)
                         showAddSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .semibold))
-                    }
+                    } label: { Image(systemName: "plus").font(.system(size: 15, weight: .semibold)) }
 
                     Menu {
-                        NavigationLink { FileTransferView() } label: {
-                            Label("Archivos Wi-Fi", systemImage: "arrow.up.arrow.down.circle")
-                        }
-                        NavigationLink { DiagnosticsView() } label: {
-                            Label("Diagnóstico", systemImage: "waveform.path.ecg")
-                        }
-                        NavigationLink { ManualView() } label: {
-                            Label("Manual", systemImage: "book")
-                        }
-                        NavigationLink { SettingsView() } label: {
-                            Label("Ajustes", systemImage: "gearshape")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 16, weight: .medium))
-                    }
+                        NavigationLink { FileTransferView() } label: { Label("Archivos Wi-Fi", systemImage: "arrow.up.arrow.down.circle") }
+                        NavigationLink { DiagnosticsView() } label: { Label("Diagnóstico", systemImage: "waveform.path.ecg") }
+                        NavigationLink { ManualView() } label: { Label("Manual", systemImage: "book") }
+                        NavigationLink { SettingsView() } label: { Label("Ajustes", systemImage: "gearshape") }
+                    } label: { Image(systemName: "ellipsis.circle").font(.system(size: 16, weight: .medium)) }
                 }
             }
             .sheet(isPresented: $showAddSheet) {
@@ -119,8 +98,7 @@ struct HostListView: View {
                 }
             }
             .fullScreenCover(item: $selectedHost) { host in
-                StreamSessionView(host: host)
-                    .environmentObject(container)
+                StreamSessionView(host: host).environmentObject(container)
             }
             .onAppear {
                 savedHosts = container.hostRepository.loadSavedHosts()
@@ -132,36 +110,46 @@ struct HostListView: View {
         }
     }
 
-    /// Botón central circular 92pt (paridad 1:1 con `LiquidStartButton` plano Material 3 de Android).
+    /// Botón circular 92pt Material 3 con icono centrado y etiqueta exterior sin solapamiento.
     private var quickStartHero: some View {
-        VStack(spacing: DesignTokens.spacingSM) {
+        VStack(spacing: 8) {
             Button {
                 IosHaptics.success(enabled: container.settings.hapticsEnabled)
                 if let target = primaryHost {
                     container.logStore.log("Conectando rápido a \(target.name)")
                     selectedHost = target
-                } else {
-                    showAddSheet = true
-                }
+                } else { showAddSheet = true }
             } label: {
-                VStack(spacing: 4) {
+                ZStack {
+                    Circle().fill(DesignTokens.accent).frame(width: 92, height: 92)
                     Image(systemName: primaryHost != nil ? "play.fill" : "plus")
-                        .font(.title2.weight(.semibold))
-                    Text(primaryHost != nil ? "INICIAR" : "AÑADIR")
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(0.8)
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundStyle(DesignTokens.onAccent)
+                        .offset(x: primaryHost != nil ? 3 : 0)
                 }
-                .foregroundStyle(DesignTokens.onAccent)
-                .frame(width: 92, height: 92)
-                .background(DesignTokens.accent, in: Circle())
             }
             .buttonStyle(IosPressButtonStyle())
 
-            Text(primaryHost.map { "Listo para proyectar en \($0.name)" } ?? "Agrega o detecta tu PC para comenzar")
+            Text(primaryHost != nil ? "Conectar Escritorio" : "Añadir Equipo")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(DesignTokens.textPrimary)
+
+            Text(primaryTargetSubtitle)
                 .font(DesignTokens.captionFont)
                 .foregroundStyle(DesignTokens.textSecondary)
+                .lineLimit(1).truncationMode(.tail)
         }
         .padding(.top, DesignTokens.spacingSM)
+    }
+
+    private var primaryTargetSubtitle: String {
+        guard let host = primaryHost else { return "Agrega o detecta tu PC para comenzar" }
+        let raw = host.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let parenIdx = raw.firstIndex(of: "(") {
+            let prefix = String(raw[..<parenIdx]).trimmingCharacters(in: .whitespaces)
+            return "Listo para proyectar en \(prefix.isEmpty ? raw : prefix)"
+        }
+        return "Listo para proyectar en \(raw)"
     }
 
     private var emptyStateView: some View {
@@ -169,13 +157,10 @@ struct HostListView: View {
             Image(systemName: "wifi").font(.largeTitle).foregroundStyle(DesignTokens.textSecondary)
             Text("Buscando equipos SmartDisplay en tu Wi-Fi").font(DesignTokens.sectionFont)
             Text("Asegúrate de tener SmartDisplay Host activo en tu PC o pulsa + para añadir la IP.")
-                .font(DesignTokens.bodyFont)
-                .foregroundStyle(DesignTokens.textSecondary)
+                .font(DesignTokens.bodyFont).foregroundStyle(DesignTokens.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
-        .enterpriseSurface()
+        .frame(maxWidth: .infinity).padding(.vertical, 28).enterpriseSurface()
     }
 
     private func probeSavedHosts() {

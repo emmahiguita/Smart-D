@@ -3,11 +3,8 @@ import SwiftUI
 /// Sesión remota completa de SmartDisplay AI para iOS con aceleración por hardware GPU (VideoToolbox),
 /// entrada táctil/ratón/teclado, físicas de resorte interactivas, telemetría y voz full-duplex UDP.
 ///
-/// Qué hace: gestiona el ciclo de vida del bus WebSocket (47991), conmuta automáticamente entre
-/// el flujo H.264 acelerado por hardware y el flujo interactivo JPEG de alta definición, traduce
-/// gestos táctiles (clic primario, clic secundario por pulsación prolongada, movimiento relativo y scroll)
-/// y orquesta las barras flotantes `StreamTopBar` y `StreamKeyboardBar`.
-/// Por qué: cumple el principio de Responsabilidad Única (SRP) orquestando la sesión sin sobrecargar la vista.
+/// Qué hace: gestiona el bus WebSocket (47991), conmuta entre VideoToolbox H.264 y flujo interactivo JPEG,
+/// traduce gestos táctiles con ratio 16:9 estricto y ancla la barra flotante al borde superior seguro.
 struct StreamSessionView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -33,14 +30,11 @@ struct StreamSessionView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                // Lienzo híbrido GPU: VideoToolbox H.264 + Flujo interactivo en vivo del Companion 47991
+                // Lienzo GPU con ratio 16:9 preservado sin deformación elíptica
                 ZStack {
-                    VideoToolboxCanvasView(renderer: container.videoRenderer).ignoresSafeArea()
+                    VideoToolboxCanvasView(renderer: container.videoRenderer)
                     if let liveImg = liveDesktopImage {
-                        Image(uiImage: liveImg)
-                            .resizable()
-                            .scaledToFit()
-                            .ignoresSafeArea()
+                        Image(uiImage: liveImg).resizable().scaledToFit()
                     }
                     if !hasVideoFrames {
                         StreamWaitingPlaceholder(hostName: host.name, hostAddress: host.address, busConnected: busConnected)
@@ -48,6 +42,7 @@ struct StreamSessionView: View {
                 }
                 .scaleEffect(engine.state.scale)
                 .offset(x: engine.state.offsetX, y: engine.state.offsetY)
+                .clipped()
                 .contentShape(Rectangle())
                 .onTapGesture { location in
                     guard !engine.state.isMoveModeEnabled else { return }
@@ -61,26 +56,26 @@ struct StreamSessionView: View {
                 }
                 .gesture(
                     MagnificationGesture()
-                        .onChanged { value in engine.applyScale(baseScale * value, viewportSize: geo.size) }
+                        .onChanged { v in engine.applyScale(baseScale * v, viewportSize: geo.size) }
                         .onEnded { _ in baseScale = engine.state.scale }
                 )
                 .simultaneousGesture(
                     DragGesture()
-                        .onChanged { value in
-                            lastTouchLocation = value.location
+                        .onChanged { v in
+                            lastTouchLocation = v.location
                             if engine.state.isMoveModeEnabled {
-                                let dx = value.translation.width - lastDrag.width
-                                let dy = value.translation.height - lastDrag.height
-                                lastDrag = value.translation
+                                let dx = v.translation.width - lastDrag.width
+                                let dy = v.translation.height - lastDrag.height
+                                lastDrag = v.translation
                                 engine.pan(deltaX: dx, deltaY: dy, viewportSize: geo.size)
                             } else {
-                                container.inputDispatcher.sendPointerMove(to: value.location, in: geo.size)
+                                container.inputDispatcher.sendPointerMove(to: v.location, in: geo.size)
                             }
                         }
                         .onEnded { _ in lastDrag = .zero }
                 )
 
-                // Capa de controles flotantes iOS con transiciones de resorte nativas
+                // Capa de controles flotantes anclada al borde superior
                 VStack(spacing: DesignTokens.spacingSM) {
                     if controlsVisible {
                         StreamTopBar(
@@ -99,6 +94,7 @@ struct StreamSessionView: View {
                             onCollapse: { withAnimation(IosMotion.snappy) { controlsVisible = false } },
                             onClose: { dismiss() }
                         )
+                        .padding(.horizontal, DesignTokens.spacingMD).padding(.top, 4)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     } else {
                         HStack {
@@ -107,19 +103,15 @@ struct StreamSessionView: View {
                                 IosHaptics.tap(enabled: container.settings.hapticsEnabled)
                                 withAnimation(IosMotion.snappy) { controlsVisible = true }
                             } label: {
-                                Image(systemName: "chevron.down")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(8)
-                                    .background(.ultraThinMaterial, in: Circle())
+                                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white).padding(8).background(.ultraThinMaterial, in: Circle())
                             }
                         }
-                        .transition(.opacity)
+                        .padding(.horizontal, DesignTokens.spacingMD).padding(.top, 4).transition(.opacity)
                     }
 
                     if !networkAvailable {
-                        StreamStatusPill(text: "Sin conexión Wi-Fi · Esperando red...")
-                            .transition(.scale.combined(with: .opacity))
+                        StreamStatusPill(text: "Sin conexión Wi-Fi · Esperando red...").transition(.scale.combined(with: .opacity))
                     }
 
                     Spacer()
@@ -130,13 +122,12 @@ struct StreamSessionView: View {
                     }
 
                     if showKeyboardBar {
-                        StreamKeyboardBar {
-                            withAnimation(IosMotion.snappy) { showKeyboardBar = false }
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        StreamKeyboardBar { withAnimation(IosMotion.snappy) { showKeyboardBar = false } }
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .padding(DesignTokens.spacingMD)
+                .padding(.bottom, DesignTokens.spacingMD)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .statusBarHidden(true)
             .onAppear { startSession() }
@@ -186,7 +177,6 @@ struct StreamSessionView: View {
         container.busClient.connect(host: host.address, port: port, token: container.settings.voicePin)
     }
 
-    /// Libera red, video y voz limpiamente al salir de la pantalla remota.
     private func endSession() {
         container.inputDispatcher.stopDesktopStream()
         container.networkMonitor.stop()
@@ -199,10 +189,7 @@ struct StreamSessionView: View {
     }
 
     private func toggleVoice() {
-        if voiceActive {
-            container.voiceService.stop()
-            voiceActive = false
-        } else {
+        if voiceActive { container.voiceService.stop(); voiceActive = false } else {
             container.voiceService.start(hostIp: host.address, pin: container.settings.voicePin) { ok in
                 withAnimation(IosMotion.snappy) { voiceActive = ok }
             }
