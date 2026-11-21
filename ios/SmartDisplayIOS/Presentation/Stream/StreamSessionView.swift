@@ -2,6 +2,10 @@ import SwiftUI
 
 /// Sesión remota de SmartDisplay AI para iOS con aceleración GPU (VideoToolbox),
 /// mapeo de ratón 1:1 con corrección de escala/pan, entrada táctil y teclado virtual.
+///
+/// Qué hace: gestiona la conexión WebSocket con el PC, proyecta el escritorio remoto y traduce toques.
+/// Cómo funciona: aplica la matriz inversa de escala/pan a las coordenadas de pantalla antes de despacharlas.
+/// Por qué existe: orquesta la sesión completa sin acoplar la lógica de red a la interfaz gráfica.
 struct StreamSessionView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -18,6 +22,8 @@ struct StreamSessionView: View {
     @State private var hasVideoFrames = false
     @State private var voiceActive = false
     @State private var showKeyboardBar = false
+    @State private var showMouseHelperBar = false
+    @State private var isDragLocked = false
     @State private var controlsVisible = true
     @State private var telemetry = PcTelemetrySnapshot()
     @State private var liveDesktopImage: UIImage?
@@ -27,7 +33,7 @@ struct StreamSessionView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                // Lienzo GPU con ratio 16:9 preservado
+                // Lienzo GPU con ratio 16:9 preservado sin deformación elíptica
                 ZStack {
                     VideoToolboxCanvasView(renderer: container.videoRenderer)
                     if let liveImg = liveDesktopImage { Image(uiImage: liveImg).resizable().scaledToFit() }
@@ -67,18 +73,19 @@ struct StreamSessionView: View {
                         .onEnded { _ in lastDrag = .zero }
                 )
 
-                // Capa de controles flotantes anclada al borde superior
+                // Capa de controles flotantes anclada al borde superior seguro
                 VStack(spacing: DesignTokens.spacingSM) {
                     if controlsVisible {
                         StreamTopBar(
                             busConnected: busConnected, telemetry: telemetry,
                             zoomPercent: engine.state.zoomPercent, isMoveMode: engine.state.isMoveModeEnabled,
-                            isKeyboardOpen: showKeyboardBar, isVoiceActive: voiceActive,
+                            isKeyboardOpen: showKeyboardBar, isMouseHelperOpen: showMouseHelperBar, isVoiceActive: voiceActive,
                             onZoomIn: { withAnimation(IosMotion.smooth) { engine.zoomIn(viewportSize: geo.size); baseScale = engine.state.scale } },
                             onZoomOut: { withAnimation(IosMotion.smooth) { engine.zoomOut(viewportSize: geo.size); baseScale = engine.state.scale } },
                             onResetZoom: { withAnimation(IosMotion.smooth) { engine.reset(); baseScale = 1.0 } },
                             onToggleMoveMode: { withAnimation(IosMotion.snappy) { engine.setMoveMode(!engine.state.isMoveModeEnabled) } },
                             onToggleKeyboard: { withAnimation(IosMotion.snappy) { showKeyboardBar.toggle() } },
+                            onToggleMouseHelper: { withAnimation(IosMotion.snappy) { showMouseHelperBar.toggle() } },
                             onToggleVoice: { toggleVoice() },
                             onCollapse: { withAnimation(IosMotion.snappy) { controlsVisible = false } },
                             onClose: { dismiss() }
@@ -105,6 +112,17 @@ struct StreamSessionView: View {
 
                     Spacer()
 
+                    // Barra auxiliar de ratón flotante (clics, doble clic, scroll y arrastre)
+                    if showMouseHelperBar {
+                        StreamMouseHelperBar(
+                            isDragLocked: $isDragLocked,
+                            currentPoint: mapToContentPoint(lastTouchLocation, viewportSize: geo.size),
+                            viewportSize: geo.size,
+                            onDismiss: { withAnimation(IosMotion.snappy) { showMouseHelperBar = false } }
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
                     if engine.state.isMoveModeEnabled {
                         StreamStatusPill(text: "Modo mover pantalla activo · Arrastra con 1 dedo").transition(.move(edge: .bottom).combined(with: .opacity))
                     }
@@ -126,8 +144,7 @@ struct StreamSessionView: View {
     private func mapToContentPoint(_ screenPoint: CGPoint, viewportSize: CGSize) -> CGPoint {
         let scale = engine.state.scale
         guard scale > 0 else { return screenPoint }
-        let cx = viewportSize.width / 2.0
-        let cy = viewportSize.height / 2.0
+        let cx = viewportSize.width / 2.0, cy = viewportSize.height / 2.0
         let x = (screenPoint.x - cx - engine.state.offsetX) / scale + cx
         let y = (screenPoint.y - cy - engine.state.offsetY) / scale + cy
         return CGPoint(x: x, y: y)

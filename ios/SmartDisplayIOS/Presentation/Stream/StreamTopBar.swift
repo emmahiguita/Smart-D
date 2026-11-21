@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Barra de control superior flotante de dos islas para SmartDisplay iOS (sin deformación ni solapamiento).
+/// Barra de control superior flotante de dos islas para SmartDisplay iOS (Material 3).
 ///
-/// Qué hace: separa el estado y telemetría (isla izquierda) de los botones de control (isla derecha),
-/// fijando una altura exacta de 36pt con material translúcido `.ultraThinMaterial` en cápsula nativa.
-/// Por qué: impide cualquier distorsión elíptica o desbordamiento en pantallas de cualquier tamaño.
+/// Qué hace: separa telemetría/estado (isla izquierda) de los botones de interacción (isla derecha).
+/// Cómo funciona: fija una altura exacta de 36pt con material translúcido `.ultraThinMaterial` en cápsula nativa,
+/// evitando cualquier deformación elíptica en pantallas de cualquier tamaño y orientación.
+/// Por qué existe: cumple el Principio de Responsabilidad Única (SRP) aislando la telemetría del resto de vistas.
 struct StreamTopBar: View {
 
     @EnvironmentObject private var container: AppContainer
@@ -14,6 +15,7 @@ struct StreamTopBar: View {
     let zoomPercent: Int
     let isMoveMode: Bool
     let isKeyboardOpen: Bool
+    let isMouseHelperOpen: Bool
     let isVoiceActive: Bool
 
     let onZoomIn: () -> Void
@@ -21,13 +23,14 @@ struct StreamTopBar: View {
     let onResetZoom: () -> Void
     let onToggleMoveMode: () -> Void
     let onToggleKeyboard: () -> Void
+    let onToggleMouseHelper: () -> Void
     let onToggleVoice: () -> Void
     let onCollapse: () -> Void
     let onClose: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
-            // Isla izquierda: Telemetría y estado de enlace
+            // Isla izquierda: Telemetría de CPU y zoom en vivo
             HStack(spacing: 6) {
                 Circle()
                     .fill(busConnected ? DesignTokens.statusOnline : DesignTokens.statusError)
@@ -44,7 +47,7 @@ struct StreamTopBar: View {
 
             Spacer(minLength: 4)
 
-            // Isla derecha: Controles principales y menú desbordado
+            // Isla derecha: Teclado, Micrófono, Menú de herramientas y Cerrar
             HStack(spacing: 2) {
                 controlBtn(isKeyboardOpen ? "keyboard.chevron.compact.down" : "keyboard") {
                     onToggleKeyboard()
@@ -55,18 +58,16 @@ struct StreamTopBar: View {
                 }
 
                 Menu {
-                    Button(isMoveMode ? "Desactivar modo mover" : "Activar modo mover", systemImage: "hand.draw") {
+                    Button(isMouseHelperOpen ? "Ocultar barra de ratón" : "Barra de ratón y clics", systemImage: "cursorarrow.click") {
+                        onToggleMouseHelper()
+                    }
+                    Button(isMoveMode ? "Desactivar modo mover" : "Activar modo mover pantalla", systemImage: "hand.draw") {
                         onToggleMoveMode()
                     }
-                    Button("Acercar (+)", systemImage: "plus.magnifyingglass") {
-                        onZoomIn()
-                    }
-                    Button("Alejar (-)", systemImage: "minus.magnifyingglass") {
-                        onZoomOut()
-                    }
-                    Button("Restablecer zoom (100%)", systemImage: "arrow.up.left.and.arrow.down.right") {
-                        onResetZoom()
-                    }
+                    Divider()
+                    Button("Acercar (+)", systemImage: "plus.magnifyingglass") { onZoomIn() }
+                    Button("Alejar (-)", systemImage: "minus.magnifyingglass") { onZoomOut() }
+                    Button("Restablecer zoom (100%)", systemImage: "arrow.up.left.and.arrow.down.right") { onResetZoom() }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 15, weight: .medium))
@@ -74,13 +75,8 @@ struct StreamTopBar: View {
                         .frame(width: 32, height: 32)
                 }
 
-                controlBtn("chevron.up") {
-                    onCollapse()
-                }
-
-                controlBtn("xmark") {
-                    onClose()
-                }
+                controlBtn("chevron.up") { onCollapse() }
+                controlBtn("xmark") { onClose() }
             }
             .padding(.horizontal, 6)
             .frame(height: 36)
@@ -90,11 +86,7 @@ struct StreamTopBar: View {
     }
 
     private var telemetryText: String {
-        if telemetry.hasData {
-            return "CPU \(telemetry.cpuPercent)% · \(zoomPercent)%"
-        } else {
-            return "\(zoomPercent)%"
-        }
+        telemetry.hasData ? "CPU \(telemetry.cpuPercent)% · \(zoomPercent)%" : "\(zoomPercent)%"
     }
 
     private func controlBtn(_ icon: String, action: @escaping () -> Void) -> some View {

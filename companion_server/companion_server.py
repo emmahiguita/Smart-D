@@ -1578,6 +1578,42 @@ def _send_special_key(key_name: str):
             u.keybd_event(0x56, 0, 0x0002, 0)
             u.keybd_event(0x11, 0, 0x0002, 0)
             return
+        if k == "ctrl_a":
+            u.keybd_event(0x11, 0, 0, 0)
+            u.keybd_event(0x41, 0, 0, 0)
+            u.keybd_event(0x41, 0, 0x0002, 0)
+            u.keybd_event(0x11, 0, 0x0002, 0)
+            return
+        if k == "ctrl_z":
+            u.keybd_event(0x11, 0, 0, 0)
+            u.keybd_event(0x5A, 0, 0, 0)
+            u.keybd_event(0x5A, 0, 0x0002, 0)
+            u.keybd_event(0x11, 0, 0x0002, 0)
+            return
+        if k == "ctrl_y":
+            u.keybd_event(0x11, 0, 0, 0)
+            u.keybd_event(0x59, 0, 0, 0)
+            u.keybd_event(0x59, 0, 0x0002, 0)
+            u.keybd_event(0x11, 0, 0x0002, 0)
+            return
+        if k == "ctrl_s":
+            u.keybd_event(0x11, 0, 0, 0)
+            u.keybd_event(0x53, 0, 0, 0)
+            u.keybd_event(0x53, 0, 0x0002, 0)
+            u.keybd_event(0x11, 0, 0x0002, 0)
+            return
+        if k == "win_d":
+            u.keybd_event(0x5B, 0, 0, 0)
+            u.keybd_event(0x44, 0, 0, 0)
+            u.keybd_event(0x44, 0, 0x0002, 0)
+            u.keybd_event(0x5B, 0, 0x0002, 0)
+            return
+        if k == "alt_tab":
+            u.keybd_event(0x12, 0, 0, 0)
+            u.keybd_event(0x09, 0, 0, 0)
+            u.keybd_event(0x09, 0, 0x0002, 0)
+            u.keybd_event(0x12, 0, 0x0002, 0)
+            return
         vk_map = {
             "escape": 0x1B, "tab": 0x09, "backspace": 0x08, "enter": 0x0D,
             "win": 0x5B, "space": 0x20, "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27,
