@@ -56,3 +56,9 @@ companion_server/dist/
 __pycache__/
 *.pyc
 graphify-out/
+scripts/.last_device_ip
+scripts/audit_*/
+ios/output/
+ios/build/
+ios/SmartDisplayIOS.xcodeproj/
+

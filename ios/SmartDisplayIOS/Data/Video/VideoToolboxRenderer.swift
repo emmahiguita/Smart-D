@@ -177,30 +177,3 @@ final class VideoToolboxRenderer {
     }
 }
 
-/// Vista SwiftUI que aloja `AVSampleBufferDisplayLayer` con redimensionamiento automático.
-struct VideoToolboxCanvasView: UIViewRepresentable {
-    let renderer: VideoToolboxRenderer
-
-    func makeUIView(context: Context) -> VideoLayerHostView {
-        VideoLayerHostView(displayLayer: renderer.displayLayer)
-    }
-
-    func updateUIView(_ uiView: VideoLayerHostView, context: Context) {}
-}
-
-final class VideoLayerHostView: UIView {
-    private let displayLayer: AVSampleBufferDisplayLayer
-
-    init(displayLayer: AVSampleBufferDisplayLayer) {
-        self.displayLayer = displayLayer
-        super.init(frame: .zero)
-        layer.addSublayer(displayLayer)
-    }
-
-    required init?(coder: NSCoder) { fatalError("No soportado") }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        displayLayer.frame = bounds
-    }
-}

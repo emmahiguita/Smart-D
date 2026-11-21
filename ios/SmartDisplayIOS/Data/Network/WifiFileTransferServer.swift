@@ -8,7 +8,7 @@ import Network
 /// iOS (`GET /dl?i=N`) y subir archivos desde el navegador del PC (`POST /up` multipart).
 /// Cómo funciona: delega el parseo multipart a `MultipartUploadParser`, sanitiza nombres
 /// contra Path Traversal y expone la IP Wi-Fi local (`en0`) mediante `getifaddrs`.
-/// Por qué: transferencia local sin cables, sin nube y sin dependencias externas.
+/// Por qué existe: transferencia local directa de alta velocidad sin cables ni servicios en la nube.
 final class WifiFileTransferServer {
 
     static let defaultPort: UInt16 = 8080
@@ -39,14 +39,8 @@ final class WifiFileTransferServer {
         ) else { return [] }
 
         return urls.compactMap { url -> TransferFileItem? in
-            guard let vals = try? url.resourceValues(forKeys: Set(keys)),
-                  vals.isRegularFile == true else { return nil }
-            return TransferFileItem(
-                name: url.lastPathComponent,
-                url: url,
-                byteCount: Int64(vals.fileSize ?? 0),
-                modifiedAt: vals.contentModificationDate ?? Date()
-            )
+            guard let vals = try? url.resourceValues(forKeys: Set(keys)), vals.isRegularFile == true else { return nil }
+            return TransferFileItem(name: url.lastPathComponent, url: url, byteCount: Int64(vals.fileSize ?? 0), modifiedAt: vals.contentModificationDate ?? Date())
         }.sorted { $0.modifiedAt > $1.modifiedAt }
     }
 
@@ -55,7 +49,7 @@ final class WifiFileTransferServer {
         queue.async { [weak self] in self?.sharedItems.append(item) }
     }
 
-    /// Inicia el servidor HTTP en la red Wi-Fi local.
+    /// Inicia el listener HTTP TCP en el puerto especificado.
     func start(port: UInt16 = defaultPort) {
         queue.async { [weak self] in
             guard let self, !self.isRunning, let nwPort = NWEndpoint.Port(rawValue: port) else { return }
@@ -64,37 +58,28 @@ final class WifiFileTransferServer {
                 newListener.newConnectionHandler = { [weak self] conn in self?.handleConnection(conn) }
                 newListener.stateUpdateHandler = { [weak self] state in
                     guard let self else { return }
-                    if case .ready = state {
-                        self.isRunning = true
-                        DispatchQueue.main.async { self.onStateChanged?(true) }
-                    } else if case .failed = state {
-                        self.stop()
-                    }
+                    if case .ready = state { self.isRunning = true; DispatchQueue.main.async { self.onStateChanged?(true) } }
+                    else if case .failed = state { self.stop() }
                 }
                 newListener.start(queue: self.queue)
                 self.listener = newListener
             } catch {
-                self.isRunning = false
-                DispatchQueue.main.async { self.onStateChanged?(false) }
+                self.isRunning = false; DispatchQueue.main.async { self.onStateChanged?(false) }
             }
         }
     }
 
-    /// Detiene el listener TCP y libera el puerto inmediatamente.
+    /// Detiene el listener TCP y libera los recursos de red de forma determinista.
     func stop() {
         queue.async { [weak self] in
             guard let self else { return }
-            self.listener?.cancel()
-            self.listener = nil
-            self.isRunning = false
+            self.listener?.cancel(); self.listener = nil; self.isRunning = false
             DispatchQueue.main.async { self.onStateChanged?(false) }
         }
     }
 
-    /// Acumula cabeceras y cuerpo HTTP hasta `Content-Length` y enruta la petición.
     private func handleConnection(_ conn: NWConnection) {
-        conn.start(queue: queue)
-        receiveRequest(conn, accumulated: Data())
+        conn.start(queue: queue); receiveRequest(conn, accumulated: Data())
     }
 
     private func receiveRequest(_ conn: NWConnection, accumulated: Data) {
@@ -115,8 +100,7 @@ final class WifiFileTransferServer {
             let parts = (lines.first ?? "").split(separator: " ")
             guard parts.count >= 2 else { conn.cancel(); return }
 
-            let method = String(parts[0])
-            let path = String(parts[1])
+            let method = String(parts[0]), path = String(parts[1])
             let (contentLength, contentType) = self.parseHeaders(lines)
             let bodyStart = sepRange.upperBound
             let receivedBody = Int64(buffer.count - bodyStart)
@@ -125,9 +109,7 @@ final class WifiFileTransferServer {
                 self.receiveRequest(conn, accumulated: buffer)
                 return
             }
-
-            let body = Data(buffer[bodyStart...])
-            self.route(conn, method: method, path: path, contentType: contentType, body: body)
+            self.route(conn, method: method, path: path, contentType: contentType, body: Data(buffer[bodyStart...]))
         }
     }
 
@@ -150,9 +132,7 @@ final class WifiFileTransferServer {
             return
         }
         let saved = MultipartUploadParser.saveUploadedFiles(body: body, boundary: boundary, destinationDir: receivedDirectory())
-        for url in saved {
-            DispatchQueue.main.async { [weak self] in self?.onFileReceived?(url) }
-        }
+        for url in saved { DispatchQueue.main.async { [weak self] in self?.onFileReceived?(url) } }
         let html = "<!DOCTYPE html><html><body style=\"font-family:-apple-system;background:#111317;color:#e5e7eb;padding:24px\">" +
             "<h2>\(saved.count) archivo(s) recibido(s) en iOS</h2><a style=\"color:#60a5fa\" href=\"/\">Volver</a></body></html>"
         sendResponse(conn, status: "200 OK", contentType: "text/html; charset=UTF-8", body: Data(html.utf8))
@@ -187,8 +167,7 @@ final class WifiFileTransferServer {
     }
 
     private func parseHeaders(_ lines: [String]) -> (Int64, String) {
-        var length: Int64 = 0
-        var type = ""
+        var length: Int64 = 0, type = ""
         for line in lines.dropFirst() {
             guard let colon = line.firstIndex(of: ":") else { continue }
             let key = line[..<colon].trimmingCharacters(in: .whitespaces).lowercased()
@@ -200,14 +179,10 @@ final class WifiFileTransferServer {
     }
 
     /// Sanitiza nombres de archivo impidiendo Path Traversal (`..`, `.`, separadores).
-    static func sanitizeFilename(_ name: String) -> String {
-        FileServerHtmlBuilder.sanitizeFilename(name)
-    }
+    static func sanitizeFilename(_ name: String) -> String { FileServerHtmlBuilder.sanitizeFilename(name) }
 
     /// Obtiene la dirección IPv4 activa de la interfaz Wi-Fi (`en0`).
-    static func localWifiIPv4Address() -> String? {
-        FileServerHtmlBuilder.localWifiIPv4Address()
-    }
+    static func localWifiIPv4Address() -> String? { FileServerHtmlBuilder.localWifiIPv4Address() }
 
     deinit { stop() }
 }
