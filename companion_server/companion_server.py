@@ -1442,6 +1442,23 @@ async def _stream_desktop_loop(websocket):
 _last_pointer = {"x": 640, "y": 360}
 
 
+def _with_input_desktop(fn):
+    """Adjunta el hilo actual al InputDesktop activo de Windows antes de inyectar ratón/teclado."""
+    if os.name != "nt":
+        return fn()
+    import ctypes
+    user32 = ctypes.windll.user32
+    user32.SetProcessDPIAware()
+    hdesk = user32.OpenInputDesktop(0, False, 0x01FF)
+    if hdesk:
+        user32.SetThreadDesktop(hdesk)
+    try:
+        return fn()
+    finally:
+        if hdesk:
+            user32.CloseDesktop(hdesk)
+
+
 def _handle_normalized_pointer(data: dict, click: bool):
     """Posiciona el cursor de Windows en coordenadas normalizadas (0..1) y opcionalmente hace clic."""
     try:
@@ -1453,15 +1470,13 @@ def _handle_normalized_pointer(data: dict, click: bool):
         return
     if os.name != "nt":
         return
-    try:
+    def _exec():
         import ctypes
         user32 = ctypes.windll.user32
-        user32.SetProcessDPIAware()
         sw = user32.GetSystemMetrics(0) or 1920
         sh = user32.GetSystemMetrics(1) or 1080
         px, py = int(nx * sw), int(ny * sh)
         user32.SetCursorPos(px, py)
-        # SendInput con MOUSEEVENTF_ABSOLUTE (0..65535) evita errores de escalado DPI
         abs_x, abs_y = int(nx * 65535), int(ny * 65535)
         user32.mouse_event(0x8000 | 0x0001, abs_x, abs_y, 0, 0)
         if click:
@@ -1473,6 +1488,8 @@ def _handle_normalized_pointer(data: dict, click: bool):
             else:
                 user32.mouse_event(0x0002, 0, 0, 0, 0)
                 user32.mouse_event(0x0004, 0, 0, 0, 0)
+    try:
+        _with_input_desktop(_exec)
     except Exception as ex:
         log.warning(f"Error en _handle_normalized_pointer: {ex}")
 
@@ -1489,7 +1506,7 @@ def _handle_mouse_button(data: dict, down: bool):
     """Controla el estado presionado/liberado del ratón para arrastre y selección."""
     if os.name != "nt":
         return
-    try:
+    def _exec():
         import ctypes
         user32 = ctypes.windll.user32
         nx = max(0.0, min(1.0, float(data.get("x", 0.5))))
@@ -1500,6 +1517,8 @@ def _handle_mouse_button(data: dict, down: bool):
         btn = data.get("button", "left")
         flag = (0x0008 if down else 0x0010) if btn == "right" else (0x0002 if down else 0x0004)
         user32.mouse_event(flag, 0, 0, 0, 0)
+    try:
+        _with_input_desktop(_exec)
     except Exception:
         pass
 
@@ -1508,7 +1527,7 @@ def _send_unicode_char(char: str):
     """Escribe caracteres Unicode directamente en la ventana activa usando SendInput."""
     if os.name != "nt" or not char:
         return
-    try:
+    def _exec():
         import ctypes
         from ctypes import wintypes
         user32 = ctypes.windll.user32
@@ -1534,6 +1553,8 @@ def _send_unicode_char(char: str):
             inp_up.ki = KEYBDINPUT(wVk=0, wScan=code, dwFlags=0x0004 | 0x0002, time=0, dwExtraInfo=0)
             user32.SendInput(1, ctypes.byref(inp_down), ctypes.sizeof(INPUT))
             user32.SendInput(1, ctypes.byref(inp_up), ctypes.sizeof(INPUT))
+    try:
+        _with_input_desktop(_exec)
     except Exception:
         pass
 
@@ -1542,97 +1563,53 @@ def _handle_scroll(data: dict):
     """Simula desplazamiento de rueda del ratón (scroll) en Windows."""
     if os.name != "nt":
         return
-    try:
+    def _exec():
         import ctypes
-        user32 = ctypes.windll.user32
         dy = int(data.get("delta_y", 0))
         if dy != 0:
-            # 0x0800 = MOUSEEVENTF_WHEEL
-            user32.mouse_event(0x0800, 0, 0, dy, 0)
+            ctypes.windll.user32.mouse_event(0x0800, 0, 0, dy, 0)
+    try:
+        _with_input_desktop(_exec)
     except Exception:
         pass
 
 
 def _paste_clipboard_keystroke():
     """Simula Ctrl+V en Windows para pegar el texto enviado desde iOS/Android."""
-    if os.name != "nt":
-        return
-    try:
-        import ctypes
-        u = ctypes.windll.user32
-        u.keybd_event(0x11, 0, 0, 0)       # VK_CONTROL down
-        u.keybd_event(0x56, 0, 0, 0)       # 'V' down
-        u.keybd_event(0x56, 0, 0x0002, 0)  # 'V' up
-        u.keybd_event(0x11, 0, 0x0002, 0)  # VK_CONTROL up
-    except Exception:
-        pass
+    _send_special_key("ctrl_v")
 
 
 def _send_special_key(key_name: str):
-    """Envía teclas especiales (escape, tab, backspace, enter, win, atajos) al sistema Windows."""
-    if os.name != "nt":
+    """Envía teclas especiales y atajos de Windows adjunto al InputDesktop activo."""
+    if os.name != "nt" or not key_name:
         return
     k = key_name.lower()
-    try:
+    combos = {
+        "ctrl_c": (0x11, 0x43), "ctrl_v": (0x11, 0x56), "ctrl_a": (0x11, 0x41),
+        "ctrl_z": (0x11, 0x5A), "ctrl_y": (0x11, 0x59), "ctrl_s": (0x11, 0x53),
+        "win_d": (0x5B, 0x44), "alt_tab": (0x12, 0x09),
+    }
+    vk_map = {
+        "escape": 0x1B, "tab": 0x09, "backspace": 0x08, "enter": 0x0D,
+        "win": 0x5B, "space": 0x20, "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27,
+        "delete": 0x2E, "del": 0x2E, "alt": 0x12, "home": 0x24, "end": 0x23,
+        "pageup": 0x21, "pagedown": 0x22,
+    }
+    def _exec():
         import ctypes
         u = ctypes.windll.user32
-        if k == "ctrl_c":
-            u.keybd_event(0x11, 0, 0, 0)
-            u.keybd_event(0x43, 0, 0, 0)
-            u.keybd_event(0x43, 0, 0x0002, 0)
-            u.keybd_event(0x11, 0, 0x0002, 0)
-            return
-        if k == "ctrl_v":
-            u.keybd_event(0x11, 0, 0, 0)
-            u.keybd_event(0x56, 0, 0, 0)
-            u.keybd_event(0x56, 0, 0x0002, 0)
-            u.keybd_event(0x11, 0, 0x0002, 0)
-            return
-        if k == "ctrl_a":
-            u.keybd_event(0x11, 0, 0, 0)
-            u.keybd_event(0x41, 0, 0, 0)
-            u.keybd_event(0x41, 0, 0x0002, 0)
-            u.keybd_event(0x11, 0, 0x0002, 0)
-            return
-        if k == "ctrl_z":
-            u.keybd_event(0x11, 0, 0, 0)
-            u.keybd_event(0x5A, 0, 0, 0)
-            u.keybd_event(0x5A, 0, 0x0002, 0)
-            u.keybd_event(0x11, 0, 0x0002, 0)
-            return
-        if k == "ctrl_y":
-            u.keybd_event(0x11, 0, 0, 0)
-            u.keybd_event(0x59, 0, 0, 0)
-            u.keybd_event(0x59, 0, 0x0002, 0)
-            u.keybd_event(0x11, 0, 0x0002, 0)
-            return
-        if k == "ctrl_s":
-            u.keybd_event(0x11, 0, 0, 0)
-            u.keybd_event(0x53, 0, 0, 0)
-            u.keybd_event(0x53, 0, 0x0002, 0)
-            u.keybd_event(0x11, 0, 0x0002, 0)
-            return
-        if k == "win_d":
-            u.keybd_event(0x5B, 0, 0, 0)
-            u.keybd_event(0x44, 0, 0, 0)
-            u.keybd_event(0x44, 0, 0x0002, 0)
-            u.keybd_event(0x5B, 0, 0x0002, 0)
-            return
-        if k == "alt_tab":
-            u.keybd_event(0x12, 0, 0, 0)
-            u.keybd_event(0x09, 0, 0, 0)
-            u.keybd_event(0x09, 0, 0x0002, 0)
-            u.keybd_event(0x12, 0, 0x0002, 0)
-            return
-        vk_map = {
-            "escape": 0x1B, "tab": 0x09, "backspace": 0x08, "enter": 0x0D,
-            "win": 0x5B, "space": 0x20, "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27,
-            "delete": 0x2E, "del": 0x2E, "alt": 0x12, "home": 0x24, "end": 0x23, "pageup": 0x21, "pagedown": 0x22
-        }
-        vk = vk_map.get(k)
-        if vk:
+        if k in combos:
+            mod, key = combos[k]
+            u.keybd_event(mod, 0, 0, 0)
+            u.keybd_event(key, 0, 0, 0)
+            u.keybd_event(key, 0, 0x0002, 0)
+            u.keybd_event(mod, 0, 0x0002, 0)
+        elif k in vk_map:
+            vk = vk_map[k]
             u.keybd_event(vk, 0, 0, 0)
             u.keybd_event(vk, 0, 0x0002, 0)
+    try:
+        _with_input_desktop(_exec)
     except Exception:
         pass
 
