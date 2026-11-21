@@ -24,6 +24,8 @@ final class VideoLayerHostView: UIView {
     init(displayLayer: AVSampleBufferDisplayLayer) {
         self.displayLayer = displayLayer
         super.init(frame: .zero)
+        // Permite que los gestos SwiftUI (tap, drag, zoom) pasen sin ser bloqueados por UIKit.
+        self.isUserInteractionEnabled = false
         layer.addSublayer(displayLayer)
     }
 

@@ -58,12 +58,13 @@ struct StreamSessionView: View {
                         .onEnded { _ in baseScale = engine.state.scale }
                 )
                 .simultaneousGesture(
-                    DragGesture()
+                    DragGesture(minimumDistance: 0)
                         .onChanged { v in
                             lastTouchLocation = v.location
+                            let moved = hypot(v.translation.width, v.translation.height) > 6
+                            guard moved else { return }
                             if engine.state.isMoveModeEnabled {
-                                let dx = v.translation.width - lastDrag.width
-                                let dy = v.translation.height - lastDrag.height
+                                let dx = v.translation.width - lastDrag.width, dy = v.translation.height - lastDrag.height
                                 lastDrag = v.translation
                                 engine.pan(deltaX: dx, deltaY: dy, viewportSize: geo.size)
                             } else {
@@ -191,9 +192,7 @@ struct StreamSessionView: View {
 
     private func toggleVoice() {
         if voiceActive { container.voiceService.stop(); voiceActive = false } else {
-            container.voiceService.start(hostIp: host.address, pin: container.settings.voicePin) { ok in
-                withAnimation(IosMotion.snappy) { voiceActive = ok }
-            }
+            container.voiceService.start(hostIp: host.address, pin: container.settings.voicePin) { ok in withAnimation(IosMotion.snappy) { voiceActive = ok } }
         }
     }
 }

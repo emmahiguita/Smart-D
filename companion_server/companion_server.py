@@ -193,18 +193,24 @@ def load_pin() -> str:
 
 
 def _ws_auth_ok(websocket) -> bool:
-    """Valida el header Authorization: Bearer <PIN> en el handshake del WebSocket.
-    Robusto entre versiones de 'websockets' (request_headers vs request.headers)."""
+    """Valida Authorization: Bearer <PIN> compatible con websockets 10 a 16+.
+    Por que: websockets 14+ expone .request.headers (dataclass); versiones
+    anteriores usaban .request_headers. Probamos ambas rutas para robustez.
+    Con PIN vacio, todos los clientes son autorizados (modo desarrollo)."""
     if not PIN:
-        return True  # auth desactivada
+        return True  # auth desactivada — PIN vacio = todos autorizados
     try:
-        headers = getattr(websocket, "request_headers", None)
-        if headers is None:
-            req = getattr(websocket, "request", None)
-            headers = getattr(req, "headers", None) if req is not None else None
-        if headers is None:
-            return False
-        return headers.get("Authorization", "") == f"Bearer {PIN}"
+        # websockets 14+ nuevo API: websocket.request es un dataclass con .headers
+        req = getattr(websocket, "request", None)
+        if req is not None:
+            h = getattr(req, "headers", None)
+            if h is not None:
+                return h.get("Authorization", "") == f"Bearer {PIN}"
+        # websockets <= 13 API antiguo: .request_headers directo en el websocket
+        h = getattr(websocket, "request_headers", None)
+        if h is not None:
+            return h.get("Authorization", "") == f"Bearer {PIN}"
+        return False  # no se pueden leer headers → rechazar si hay PIN configurado
     except Exception:
         return False
 
@@ -1324,15 +1330,14 @@ async def bus_handler(websocket, path="/"):
                 _send_special_key(data.get("key", ""))
             elif t == "input_scroll":
                 _handle_scroll(data)
-    except Exception:
-        pass
+    except Exception as _bus_exc:
+        log.warning(f"Bus handler error: {_bus_exc}")  # nunca silenciar errores
     finally:
         websocket._sd_streaming = False
         bus_clients.discard(websocket)
         log.info("Bus desconectado")
-        # Sin sesión móvil → restaurar cursor del PC y audio.
         if not bus_clients:
-            _set_pc_cursor_visible(True)  # Restaurar cursor del sistema
+            _set_pc_cursor_visible(True)
             asyncio.create_task(asyncio.to_thread(_restore_pc_audio))
 
 
@@ -1445,26 +1450,31 @@ def _handle_normalized_pointer(data: dict, click: bool):
         _last_pointer["x"] = int(nx * 1280)
         _last_pointer["y"] = int(ny * 720)
     except Exception:
-        pass
+        return
     if os.name != "nt":
         return
     try:
         import ctypes
         user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()
         sw = user32.GetSystemMetrics(0) or 1920
         sh = user32.GetSystemMetrics(1) or 1080
         px, py = int(nx * sw), int(ny * sh)
         user32.SetCursorPos(px, py)
+        # SendInput con MOUSEEVENTF_ABSOLUTE (0..65535) evita errores de escalado DPI
+        abs_x, abs_y = int(nx * 65535), int(ny * 65535)
+        user32.mouse_event(0x8000 | 0x0001, abs_x, abs_y, 0, 0)
         if click:
             btn = data.get("button", "left")
+            log.info(f"Input click ({btn}) en ({px}, {py})")
             if btn == "right":
                 user32.mouse_event(0x0008, 0, 0, 0, 0)
                 user32.mouse_event(0x0010, 0, 0, 0, 0)
             else:
                 user32.mouse_event(0x0002, 0, 0, 0, 0)
                 user32.mouse_event(0x0004, 0, 0, 0, 0)
-    except Exception:
-        pass
+    except Exception as ex:
+        log.warning(f"Error en _handle_normalized_pointer: {ex}")
 
 
 def _handle_double_click(data: dict):
