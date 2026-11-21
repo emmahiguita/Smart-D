@@ -1,12 +1,12 @@
-# Compilación automática en la nube (macOS-15 + Xcode) para SmartDisplay AI iOS.
-# Compila el binario real iOS (iphoneos) y genera SmartDisplayIOS-unsigned.ipa descargable.
+# Compilación automática en la nube (macOS-15 + Flutter 3.38 + Xcode) para SmartDisplay AI iOS.
+# Compila la app real Flutter Material 3 (`flutter_ios/`) y genera SmartDisplayIOS-unsigned.ipa.
 name: Build SmartDisplay iOS
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'ios/**'
+      - 'flutter_ios/**'
       - '.github/workflows/ios-build.yml'
 
 jobs:
@@ -16,36 +16,30 @@ jobs:
       - name: Checkout repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar XcodeGen
-        run: brew install xcodegen
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.4'
+          channel: 'stable'
+          cache: true
 
-      - name: Generar proyecto Xcode
-        working-directory: ios
-        run: xcodegen generate
+      - name: Obtener dependencias Flutter
+        working-directory: flutter_ios
+        run: flutter pub get
 
-      - name: Compilar SmartDisplayIOS (iOS SDK)
-        working-directory: ios
-        run: |
-          xcodebuild \
-            -project SmartDisplayIOS.xcodeproj \
-            -scheme SmartDisplayIOS \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            build
+      - name: Compilar SmartDisplay AI Flutter (iOS Release sin firma)
+        working-directory: flutter_ios
+        run: flutter build ios --release --no-codesign
 
-      - name: Empaquetar IPA sin firma (AltStore / SideStore / TrollStore)
-        working-directory: ios
+      - name: Empaquetar IPA sin firma (Sideloadly / AltStore / SideStore)
+        working-directory: flutter_ios
         run: |
           mkdir -p Payload
-          cp -R "build/Build/Products/Release-iphoneos/SmartDisplay AI.app" Payload/
+          cp -R build/ios/iphoneos/Runner.app Payload/
           zip -r -q SmartDisplayIOS-unsigned.ipa Payload
 
       - name: Subir artefacto IPA
         uses: actions/upload-artifact@v4
         with:
           name: SmartDisplayIOS-unsigned-ipa
-          path: ios/SmartDisplayIOS-unsigned.ipa
+          path: flutter_ios/SmartDisplayIOS-unsigned.ipa
