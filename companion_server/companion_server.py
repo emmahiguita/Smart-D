@@ -913,8 +913,10 @@ def _set_pc_cursor_visible(visible: bool):
     handles: Windows los relees del registro automáticamente).
     """
     global _cursor_hidden
-    if _cursor_hidden == (not visible):
-        return
+    # BUGFIX: el usuario SIEMPRE debe ver la flecha del ratón. Nunca ocultamos
+    # el cursor del sistema; cualquier petición de ocultar se convierte en
+    # "restaurar" para reparar sesiones previas que lo dejaron invisible.
+    visible = True
     try:
         import ctypes
         import ctypes.wintypes
@@ -927,8 +929,8 @@ def _set_pc_cursor_visible(visible: bool):
             empty = user32.CreateCursor(None, 0, 0, 1, 1, and_mask, xor_mask)
             if empty:
                 for cid in _CURSOR_IDS:
-                    # CopyCursor porque SetSystemCursor consume (destruye) el handle
-                    copy = user32.CopyCursor(empty)
+                    # CopyIcon porque SetSystemCursor consume (destruye) el handle (CopyCursor es un macro en Win32)
+                    copy = user32.CopyIcon(empty)
                     if copy:
                         user32.SetSystemCursor(copy, cid)
                 user32.DestroyCursor(empty)
@@ -1302,12 +1304,22 @@ async def bus_handler(websocket, path="/"):
                 _handle_normalized_pointer(data, click=False)
             elif t == "input_click":
                 _handle_normalized_pointer(data, click=True)
+            elif t == "input_double_click":
+                _handle_double_click(data)
+            elif t == "input_mouse_down":
+                _handle_mouse_button(data, down=True)
+            elif t == "input_mouse_up":
+                _handle_mouse_button(data, down=False)
             elif t == "input_text":
                 txt = data.get("text", "")
                 if txt:
                     _last_clip["text"] = txt
                     _set_pc_clipboard(txt)
                     _paste_clipboard_keystroke()
+            elif t == "input_char":
+                ch = data.get("char", "")
+                if ch:
+                    _send_unicode_char(ch)
             elif t == "input_key":
                 _send_special_key(data.get("key", ""))
             elif t == "input_scroll":
@@ -1321,7 +1333,45 @@ async def bus_handler(websocket, path="/"):
         # Sin sesión móvil → restaurar cursor del PC y audio.
         if not bus_clients:
             _set_pc_cursor_visible(True)  # Restaurar cursor del sistema
-            _restore_pc_audio()            # Restaurar dispositivo de audio
+            asyncio.create_task(asyncio.to_thread(_restore_pc_audio))
+
+
+def _draw_cursor_arrow(shot, user32):
+    """Dibuja la flecha del ratón de Windows sobre el frame capturado.
+
+    Qué hace: lee la posición real del cursor (GetCursorPos en el escritorio
+    de entrada) y pinta una flecha blanca con borde negro y sombra.
+    Por qué: PIL.ImageGrab captura la pantalla SIN el cursor, por lo que el
+    móvil no sabía dónde estaba la flecha. Se dibuja antes de escalar para
+    que la posición coincida 1:1 con los píxeles del escritorio.
+    """
+    if user32 is None:
+        return
+    try:
+        import ctypes, ctypes.wintypes
+        from PIL import ImageDraw
+        hdesk = user32.OpenInputDesktop(0, False, 0x01FF)
+        if hdesk:
+            user32.SetThreadDesktop(hdesk)
+        pt = ctypes.wintypes.POINT()
+        ok = user32.GetCursorPos(ctypes.byref(pt))
+        if hdesk:
+            user32.CloseDesktop(hdesk)
+        if not ok:
+            return
+        # Escala relativa a 1080p para que la flecha tenga tamaño legible
+        s = max(1.0, shot.size[1] / 1080.0) * 1.25
+        cx, cy = pt.x, pt.y
+        if not (0 <= cx < shot.size[0] and 0 <= cy < shot.size[1]):
+            return
+        base = [(0, 0), (0, 26), (6, 20), (12, 32), (18, 29), (11, 18), (20, 18)]
+        draw = ImageDraw.Draw(shot)
+        shadow = [(cx + (x + 2) * s, cy + (y + 2) * s) for x, y in base]
+        arrow = [(cx + x * s, cy + y * s) for x, y in base]
+        draw.polygon(shadow, fill=(0, 0, 0))
+        draw.polygon(arrow, fill=(255, 255, 255), outline=(0, 0, 0), width=2)
+    except Exception as e:
+        log.debug(f"_draw_cursor_arrow: {e}")
 
 
 async def _stream_desktop_loop(websocket):
@@ -1367,6 +1417,9 @@ async def _stream_desktop_loop(websocket):
                     cx, cy = _last_pointer.get("x", 640), _last_pointer.get("y", 360)
                     draw.ellipse([cx - 12, cy - 12, cx + 12, cy + 12], outline=(236, 239, 242), width=3)
                 else:
+                    # ImageGrab NO incluye el cursor: dibujamos la flecha real
+                    # en su posición actual para que el usuario sepa dónde está.
+                    _draw_cursor_arrow(shot, user32)
                     if shot.size != (1280, 720):
                         shot.thumbnail((1280, 720), Image.Resampling.BILINEAR)
                 buf = io.BytesIO()
@@ -1410,6 +1463,67 @@ def _handle_normalized_pointer(data: dict, click: bool):
             else:
                 user32.mouse_event(0x0002, 0, 0, 0, 0)
                 user32.mouse_event(0x0004, 0, 0, 0, 0)
+    except Exception:
+        pass
+
+
+def _handle_double_click(data: dict):
+    """Ejecuta un doble clic izquierdo rápido en las coordenadas normalizadas."""
+    _handle_normalized_pointer(data, click=True)
+    import time
+    time.sleep(0.04)
+    _handle_normalized_pointer(data, click=True)
+
+
+def _handle_mouse_button(data: dict, down: bool):
+    """Controla el estado presionado/liberado del ratón para arrastre y selección."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        nx = max(0.0, min(1.0, float(data.get("x", 0.5))))
+        ny = max(0.0, min(1.0, float(data.get("y", 0.5))))
+        sw = user32.GetSystemMetrics(0) or 1920
+        sh = user32.GetSystemMetrics(1) or 1080
+        user32.SetCursorPos(int(nx * sw), int(ny * sh))
+        btn = data.get("button", "left")
+        flag = (0x0008 if down else 0x0010) if btn == "right" else (0x0002 if down else 0x0004)
+        user32.mouse_event(flag, 0, 0, 0, 0)
+    except Exception:
+        pass
+
+
+def _send_unicode_char(char: str):
+    """Escribe caracteres Unicode directamente en la ventana activa usando SendInput."""
+    if os.name != "nt" or not char:
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        class KEYBDINPUT(ctypes.Structure):
+            _fields_ = [
+                ("wVk", wintypes.WORD),
+                ("wScan", wintypes.WORD),
+                ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD),
+                ("dwExtraInfo", ctypes.c_ulonglong)
+            ]
+        class INPUT(ctypes.Structure):
+            class _INPUT(ctypes.Union):
+                _fields_ = [("ki", KEYBDINPUT)]
+            _anonymous_ = ("_input",)
+            _fields_ = [("type", wintypes.DWORD), ("_input", _INPUT)]
+
+        for ch in char:
+            code = ord(ch)
+            inp_down = INPUT(type=1)
+            inp_down.ki = KEYBDINPUT(wVk=0, wScan=code, dwFlags=0x0004, time=0, dwExtraInfo=0)
+            inp_up = INPUT(type=1)
+            inp_up.ki = KEYBDINPUT(wVk=0, wScan=code, dwFlags=0x0004 | 0x0002, time=0, dwExtraInfo=0)
+            user32.SendInput(1, ctypes.byref(inp_down), ctypes.sizeof(INPUT))
+            user32.SendInput(1, ctypes.byref(inp_up), ctypes.sizeof(INPUT))
     except Exception:
         pass
 
@@ -1466,7 +1580,8 @@ def _send_special_key(key_name: str):
             return
         vk_map = {
             "escape": 0x1B, "tab": 0x09, "backspace": 0x08, "enter": 0x0D,
-            "win": 0x5B, "space": 0x20, "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27
+            "win": 0x5B, "space": 0x20, "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27,
+            "delete": 0x2E, "del": 0x2E, "alt": 0x12, "home": 0x24, "end": 0x23, "pageup": 0x21, "pagedown": 0x22
         }
         vk = vk_map.get(k)
         if vk:

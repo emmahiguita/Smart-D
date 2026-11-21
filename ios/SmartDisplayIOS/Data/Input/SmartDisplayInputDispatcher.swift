@@ -1,13 +1,11 @@
 import CoreGraphics
 import Foundation
 
-/// Despachador real de entrada táctil, puntero y teclado hacia el PC anfitrión SmartDisplay.
+/// Despachador de entrada táctil, ratón y teclado hacia el PC anfitrión SmartDisplay.
 ///
-/// Qué hace: traduce coordenadas de toque de la pantalla iOS a coordenadas normalizadas
-/// (`0.0 ... 1.0`) del escritorio remoto y las envía en tiempo real por `SmartDisplayBusClient`.
-/// Cómo funciona: desacopla la geometría táctil de la vista (`StreamSessionView`) y permite
-/// enviar clics, arrastres de ratón, texto UTF-8 y atajos de sistema sin acoplamiento circular.
-/// Por qué: cumple SRP y permite inyectar comandos reales sin simulaciones.
+/// Qué hace: traduce coordenadas de toque de iOS a coordenadas normalizadas (`0.0 ... 1.0`)
+/// y las envía en tiempo real al Companion Server (`companion_server.py`) por WebSocket.
+/// Soporta clics, doble clic, arrastre (down/up), scroll, escritura Unicode e inyección de atajos.
 final class SmartDisplayInputDispatcher {
 
     private let busClient: SmartDisplayBusClient
@@ -16,43 +14,66 @@ final class SmartDisplayInputDispatcher {
         self.busClient = busClient
     }
 
-    /// Envía un clic primario en la posición normalizada `(x, y)` del lienzo.
+    /// Envía un clic primario (izquierdo) en la posición normalizada `(x, y)` del lienzo.
     func sendTap(at point: CGPoint, in viewportSize: CGSize) {
         guard let norm = normalize(point: point, in: viewportSize) else { return }
         busClient.send(type: "input_click", fields: [
-            "x": format(norm.x),
-            "y": format(norm.y),
-            "button": "left"
+            "x": format(norm.x), "y": format(norm.y), "button": "left"
         ])
     }
 
-    /// Envía un clic secundario (clic derecho) en la posición normalizada `(x, y)`.
+    /// Envía un doble clic primario en la posición normalizada `(x, y)`.
+    func sendDoubleTap(at point: CGPoint, in viewportSize: CGSize) {
+        guard let norm = normalize(point: point, in: viewportSize) else { return }
+        busClient.send(type: "input_double_click", fields: [
+            "x": format(norm.x), "y": format(norm.y)
+        ])
+    }
+
+    /// Envía un clic secundario (derecho) en la posición normalizada `(x, y)`.
     func sendRightClick(at point: CGPoint, in viewportSize: CGSize) {
         guard let norm = normalize(point: point, in: viewportSize) else { return }
         busClient.send(type: "input_click", fields: [
-            "x": format(norm.x),
-            "y": format(norm.y),
-            "button": "right"
+            "x": format(norm.x), "y": format(norm.y), "button": "right"
+        ])
+    }
+
+    /// Presiona el botón del ratón (inicia arrastre o selección).
+    func sendMouseDown(at point: CGPoint, in viewportSize: CGSize, button: String = "left") {
+        guard let norm = normalize(point: point, in: viewportSize) else { return }
+        busClient.send(type: "input_mouse_down", fields: [
+            "x": format(norm.x), "y": format(norm.y), "button": button
+        ])
+    }
+
+    /// Libera el botón del ratón (finaliza arrastre).
+    func sendMouseUp(at point: CGPoint, in viewportSize: CGSize, button: String = "left") {
+        guard let norm = normalize(point: point, in: viewportSize) else { return }
+        busClient.send(type: "input_mouse_up", fields: [
+            "x": format(norm.x), "y": format(norm.y), "button": button
         ])
     }
 
     /// Envía desplazamiento de rueda de ratón (scroll vertical hacia arriba o abajo).
     func sendScroll(deltaY: Int) {
-        busClient.send(type: "input_scroll", fields: [
-            "delta_y": "\(deltaY)"
-        ])
+        busClient.send(type: "input_scroll", fields: ["delta_y": "\(deltaY)"])
     }
 
-    /// Envía movimiento continuo del puntero mientras el usuario arrastra (modo ratón).
+    /// Envía movimiento continuo del cursor mientras el usuario arrastra.
     func sendPointerMove(to point: CGPoint, in viewportSize: CGSize) {
         guard let norm = normalize(point: point, in: viewportSize) else { return }
         busClient.send(type: "input_move", fields: [
-            "x": format(norm.x),
-            "y": format(norm.y)
+            "x": format(norm.x), "y": format(norm.y)
         ])
     }
 
-    /// Envía texto UTF-8 (desde una palabra hasta párrafos) sincronizando también el portapapeles del PC.
+    /// Envía un solo carácter Unicode directamente (escritura interactiva tecla a tecla).
+    func sendChar(_ char: String) {
+        guard !char.isEmpty else { return }
+        busClient.send(type: "input_char", fields: ["char": char])
+    }
+
+    /// Envía texto completo sincronizando el portapapeles del PC y pegando en el foco activo.
     func sendText(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .newlines)
         guard !trimmed.isEmpty else { return }
@@ -60,40 +81,23 @@ final class SmartDisplayInputDispatcher {
         busClient.send(type: "input_text", fields: ["text": trimmed])
     }
 
-    /// Envía una tecla especial de control (`enter`, `backspace`, `escape`, `tab`).
+    /// Envía una tecla especial (`enter`, `backspace`, `escape`, `tab`, `win`, `space`, etc.).
     func sendSpecialKey(_ key: String) {
         busClient.send(type: "input_key", fields: ["key": key])
     }
 
-    /// Solicita iniciar el flujo de escritorio en vivo por el Bus 47991 (`start_stream`).
-    func startDesktopStream() {
-        busClient.send(type: "start_stream")
-    }
-
-    /// Solicita detener el flujo de escritorio al cerrar la sesión (`stop_stream`).
-    func stopDesktopStream() {
-        busClient.send(type: "stop_stream")
-    }
-
-    /// Solicita telemetría en vivo (CPU / RAM / GPU) al Companion Server (`companion_server.py`).
-    func requestSystemStats() {
-        busClient.send(type: "get_stats")
-    }
-
-    /// Restaura el dispositivo de audio del PC anfitrión (`restore_audio`).
-    func restorePcAudio() {
-        busClient.send(type: "restore_audio")
-    }
+    func startDesktopStream() { busClient.send(type: "start_stream") }
+    func stopDesktopStream() { busClient.send(type: "stop_stream") }
+    func requestSystemStats() { busClient.send(type: "get_stats") }
+    func restorePcAudio() { busClient.send(type: "restore_audio") }
 
     /// Normaliza un punto táctil compensando el letterbox/pillarbox 16:9 para precisión 1:1 con Windows.
     private func normalize(point: CGPoint, in size: CGSize) -> CGPoint? {
         guard size.width > 0, size.height > 0 else { return nil }
         let aspect: CGFloat = 16.0 / 9.0
         let viewportAspect = size.width / size.height
-        var drawW = size.width
-        var drawH = size.height
-        var originX: CGFloat = 0
-        var originY: CGFloat = 0
+        var drawW = size.width, drawH = size.height
+        var originX: CGFloat = 0, originY: CGFloat = 0
 
         if viewportAspect > aspect {
             drawW = size.height * aspect

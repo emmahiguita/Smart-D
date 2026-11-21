@@ -1,10 +1,7 @@
 import SwiftUI
 
-/// Sesión remota completa de SmartDisplay AI para iOS con aceleración por hardware GPU (VideoToolbox),
-/// entrada táctil/ratón/teclado, físicas de resorte interactivas, telemetría y voz full-duplex UDP.
-///
-/// Qué hace: gestiona el bus WebSocket (47991), conmuta entre VideoToolbox H.264 y flujo interactivo JPEG,
-/// traduce gestos táctiles con ratio 16:9 estricto y ancla la barra flotante al borde superior seguro.
+/// Sesión remota de SmartDisplay AI para iOS con aceleración GPU (VideoToolbox),
+/// mapeo de ratón 1:1 con corrección de escala/pan, entrada táctil y teclado virtual.
 struct StreamSessionView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -30,29 +27,24 @@ struct StreamSessionView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                // Lienzo GPU con ratio 16:9 preservado sin deformación elíptica
+                // Lienzo GPU con ratio 16:9 preservado
                 ZStack {
                     VideoToolboxCanvasView(renderer: container.videoRenderer)
-                    if let liveImg = liveDesktopImage {
-                        Image(uiImage: liveImg).resizable().scaledToFit()
-                    }
-                    if !hasVideoFrames {
-                        StreamWaitingPlaceholder(hostName: host.name, hostAddress: host.address, busConnected: busConnected)
-                    }
+                    if let liveImg = liveDesktopImage { Image(uiImage: liveImg).resizable().scaledToFit() }
+                    if !hasVideoFrames { StreamWaitingPlaceholder(hostName: host.name, hostAddress: host.address, busConnected: busConnected) }
                 }
                 .scaleEffect(engine.state.scale)
                 .offset(x: engine.state.offsetX, y: engine.state.offsetY)
-                .clipped()
-                .contentShape(Rectangle())
-                .onTapGesture { location in
+                .clipped().contentShape(Rectangle())
+                .onTapGesture { loc in
                     guard !engine.state.isMoveModeEnabled else { return }
-                    lastTouchLocation = location
-                    container.inputDispatcher.sendTap(at: location, in: geo.size)
+                    lastTouchLocation = loc
+                    container.inputDispatcher.sendTap(at: mapToContentPoint(loc, viewportSize: geo.size), in: geo.size)
                 }
                 .onLongPressGesture(minimumDuration: 0.45) {
                     guard !engine.state.isMoveModeEnabled else { return }
                     IosHaptics.success(enabled: container.settings.hapticsEnabled)
-                    container.inputDispatcher.sendRightClick(at: lastTouchLocation, in: geo.size)
+                    container.inputDispatcher.sendRightClick(at: mapToContentPoint(lastTouchLocation, viewportSize: geo.size), in: geo.size)
                 }
                 .gesture(
                     MagnificationGesture()
@@ -69,7 +61,7 @@ struct StreamSessionView: View {
                                 lastDrag = v.translation
                                 engine.pan(deltaX: dx, deltaY: dy, viewportSize: geo.size)
                             } else {
-                                container.inputDispatcher.sendPointerMove(to: v.location, in: geo.size)
+                                container.inputDispatcher.sendPointerMove(to: mapToContentPoint(v.location, viewportSize: geo.size), in: geo.size)
                             }
                         }
                         .onEnded { _ in lastDrag = .zero }
@@ -79,12 +71,9 @@ struct StreamSessionView: View {
                 VStack(spacing: DesignTokens.spacingSM) {
                     if controlsVisible {
                         StreamTopBar(
-                            busConnected: busConnected,
-                            telemetry: telemetry,
-                            zoomPercent: engine.state.zoomPercent,
-                            isMoveMode: engine.state.isMoveModeEnabled,
-                            isKeyboardOpen: showKeyboardBar,
-                            isVoiceActive: voiceActive,
+                            busConnected: busConnected, telemetry: telemetry,
+                            zoomPercent: engine.state.zoomPercent, isMoveMode: engine.state.isMoveModeEnabled,
+                            isKeyboardOpen: showKeyboardBar, isVoiceActive: voiceActive,
                             onZoomIn: { withAnimation(IosMotion.smooth) { engine.zoomIn(viewportSize: geo.size); baseScale = engine.state.scale } },
                             onZoomOut: { withAnimation(IosMotion.smooth) { engine.zoomOut(viewportSize: geo.size); baseScale = engine.state.scale } },
                             onResetZoom: { withAnimation(IosMotion.smooth) { engine.reset(); baseScale = 1.0 } },
@@ -117,13 +106,11 @@ struct StreamSessionView: View {
                     Spacer()
 
                     if engine.state.isMoveModeEnabled {
-                        StreamStatusPill(text: "Modo mover pantalla activo · Arrastra con 1 dedo")
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        StreamStatusPill(text: "Modo mover pantalla activo · Arrastra con 1 dedo").transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
                     if showKeyboardBar {
-                        StreamKeyboardBar { withAnimation(IosMotion.snappy) { showKeyboardBar = false } }
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        StreamKeyboardBar { withAnimation(IosMotion.snappy) { showKeyboardBar = false } }.transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .padding(.bottom, DesignTokens.spacingMD)
@@ -135,43 +122,42 @@ struct StreamSessionView: View {
         }
     }
 
+    /// Transforma coordenadas de pantalla a espacio de contenido compensando escala y desplazamiento.
+    private func mapToContentPoint(_ screenPoint: CGPoint, viewportSize: CGSize) -> CGPoint {
+        let scale = engine.state.scale
+        guard scale > 0 else { return screenPoint }
+        let cx = viewportSize.width / 2.0
+        let cy = viewportSize.height / 2.0
+        let x = (screenPoint.x - cx - engine.state.offsetX) / scale + cx
+        let y = (screenPoint.y - cy - engine.state.offsetY) / scale + cy
+        return CGPoint(x: x, y: y)
+    }
+
     private func startSession() {
         let port = container.settings.companionPort > 0 ? container.settings.companionPort : host.companionPort
         container.busClient.onConnectionChanged = { connected in
             withAnimation(IosMotion.snappy) { busConnected = connected }
-            if connected {
-                container.inputDispatcher.startDesktopStream()
-                container.inputDispatcher.requestSystemStats()
-            }
+            if connected { container.inputDispatcher.startDesktopStream(); container.inputDispatcher.requestSystemStats() }
         }
         container.busClient.onMessage = { msg in
             guard msg.type == "stats" else { return }
             let cpu = Int(Double(msg.payload["cpu"] ?? "") ?? 0)
             let ram = Int(Double(msg.payload["ram"] ?? "") ?? 0)
             let gpu = Int(Double(msg.payload["gpu"] ?? "") ?? 0)
-            withAnimation(IosMotion.snappy) {
-                telemetry = PcTelemetrySnapshot(cpuPercent: cpu, ramPercent: ram, gpuPercent: gpu, hasData: true)
-            }
+            withAnimation(IosMotion.snappy) { telemetry = PcTelemetrySnapshot(cpuPercent: cpu, ramPercent: ram, gpuPercent: gpu, hasData: true) }
         }
         container.busClient.onBinaryFrame = { frameData in
             guard frameData.count > 2 else { return }
             let isJpeg = (frameData[frameData.startIndex] == 0xFF && frameData[frameData.startIndex + 1] == 0xD8)
             if isJpeg, let decoded = UIImage(data: frameData) {
-                DispatchQueue.main.async {
-                    liveDesktopImage = decoded
-                    if !hasVideoFrames { hasVideoFrames = true }
-                }
+                DispatchQueue.main.async { liveDesktopImage = decoded; if !hasVideoFrames { hasVideoFrames = true } }
             } else if !isJpeg {
                 if !hasVideoFrames { DispatchQueue.main.async { hasVideoFrames = true } }
                 container.videoRenderer.enqueueAnnexBFrame(frameData)
             }
         }
-        container.networkMonitor.onNetworkStatusChanged = { available in
-            withAnimation(IosMotion.snappy) { networkAvailable = available }
-        }
-        container.networkMonitor.onNetworkRestored = {
-            if container.settings.autoReconnect { container.busClient.reconnectNow() }
-        }
+        container.networkMonitor.onNetworkStatusChanged = { available in withAnimation(IosMotion.snappy) { networkAvailable = available } }
+        container.networkMonitor.onNetworkRestored = { if container.settings.autoReconnect { container.busClient.reconnectNow() } }
         container.networkMonitor.start()
         container.logStore.log("Conectando Bus ws://\(host.address):\(port)")
         container.busClient.connect(host: host.address, port: port, token: container.settings.voicePin)
@@ -181,10 +167,8 @@ struct StreamSessionView: View {
         container.inputDispatcher.stopDesktopStream()
         container.networkMonitor.stop()
         container.voiceService.stop()
-        voiceActive = false
-        liveDesktopImage = nil
-        container.busClient.onBinaryFrame = nil
-        container.busClient.disconnect()
+        voiceActive = false; liveDesktopImage = nil
+        container.busClient.onBinaryFrame = nil; container.busClient.disconnect()
         container.videoRenderer.flush()
     }
 
