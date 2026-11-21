@@ -106,6 +106,14 @@ struct HostRowView: View {
                     .buttonStyle(.bordered)
                 }
 
+                NavigationLink {
+                    HostAppsView(host: host)
+                } label: {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .buttonStyle(.bordered)
+
                 Spacer()
 
                 Button {

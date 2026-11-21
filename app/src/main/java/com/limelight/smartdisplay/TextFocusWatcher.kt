@@ -11,203 +11,183 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /**
- * TextFocusWatcher — SmartDisplay AI Premium · Componente 3
- * ──────────────────────────────────────────────────────────
- * Cliente WebSocket que se conecta al Companion Server de Windows.
- * El servidor (Python/Node.js) monitoriza via UI Automation qué
- * control tiene el foco y si es un campo de texto.
+ * TextFocusWatcher — Cliente WebSocket de Foco y Cursor (SOLID: Responsabilidad Única)
+ *
+ * Qué hace:
+ *   Conecta con el Companion Server de Windows (puerto 8765) para recibir en tiempo real:
+ *   - Campos de texto enfocados (para abrir teclado inteligente automáticamente).
+ *   - Posición real del cursor de Windows y elementos bajo hover (Smart Snap).
+ *
+ * Cómo funciona:
+ *   - Emplea `pingInterval(15s)` para detectar desconexiones silenciosas (half-open TCP).
+ *   - Valida identidad del socket activo (`ws === webSocket`) para evitar reconexiones duplicadas.
+ *   - Aplica backoff exponencial acotado a 30s y limpia todos los callbacks en [disconnect].
  */
 class TextFocusWatcher @JvmOverloads constructor(
     private val serverUrl: String,
     private val callback: Callback?,
     private val pin: String = ""
 ) {
-
-    // ── Interfaz de callbacks ──────────────────────────────────────────────
+    /** Contrato de eventos visuales y de foco hacia la sesión. */
     interface Callback {
-        /** Se llama cuando el foco de Windows cae en un campo de texto */
         fun onTextFieldFocused(x: Float, y: Float, w: Float, h: Float, app: String)
-
-        /** Se llama cuando el foco sale del campo de texto */
         fun onTextFieldCleared()
-
-        /** Estado de la conexión WebSocket */
         fun onConnectionStatus(connected: Boolean)
-
-        /**
-         * Hover sobre un elemento genérico de la UI remota (botón, link, IDE…).
-         * [element]: none | text_input | button | link | ide_workspace.
-         * [snapX]/[snapY] solo válidos si [hasSnap] es true.
-         */
         fun onHoverElement(
-            element: String,
-            x: Float,
-            y: Float,
-            w: Float,
-            h: Float,
-            snapX: Float,
-            snapY: Float,
-            hasSnap: Boolean,
-            app: String
+            element: String, x: Float, y: Float, w: Float, h: Float,
+            snapX: Float, snapY: Float, hasSnap: Boolean, app: String
         ) {}
-
-        /**
-         * Posición real del cursor del PC (coordenadas de Windows). Permite dibujar
-         * el cursor gigante de Android exactamente donde apunta el del PC.
-         */
         fun onCursorPos(x: Float, y: Float) {}
+    }
+
+    companion object {
+        const val DEFAULT_PORT = 8765
+        private const val BASE_RECONNECT_MS = 3_000L
+        private const val MAX_RECONNECT_MS = 30_000L
+        private const val PING_INTERVAL_SEC = 15L
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var client: OkHttpClient? = null
     private var webSocket: WebSocket? = null
 
-    var isConnected: Boolean = false
+    @Volatile var isConnected: Boolean = false
         private set
 
-    private var shouldConnect = false
+    @Volatile private var shouldConnect = false
     private var retryCount = 0
 
-    // ── API Pública ───────────────────────────────────────────────────────
-
+    /** Inicia la conexión WebSocket hacia el Companion de foco. */
+    @Synchronized
     fun connect() {
+        if (shouldConnect) return
         shouldConnect = true
         retryCount = 0
         doConnect()
     }
 
-    fun disconnect() {
-        shouldConnect = false
-        webSocket?.let {
-            it.close(1000, "App closing")
-            webSocket = null
-        }
-        client?.let {
-            it.dispatcher.executorService.shutdown()
-            client = null
-        }
-        isConnected = false
+    /** Reintenta inmediatamente cuando la red vuelve sin esperar el backoff restante. */
+    @Synchronized
+    fun reconnectNow() {
+        if (!shouldConnect || webSocket != null) return
+        mainHandler.removeCallbacksAndMessages(null)
+        retryCount = 0
+        doConnect()
     }
 
-    // ── Implementación interna ────────────────────────────────────────────
+    /** Cierra el WebSocket, cancela reintentos pendientes y apaga el pool HTTP (cero zombis). */
+    @Synchronized
+    fun disconnect() {
+        shouldConnect = false
+        isConnected = false
+        mainHandler.removeCallbacksAndMessages(null)
+        webSocket?.close(1000, "App closing")
+        webSocket = null
+        client?.let {
+            it.dispatcher.executorService.shutdown()
+            it.connectionPool.evictAll()
+        }
+        client = null
+    }
 
+    /** Crea el cliente HTTP si no existe y abre el WebSocket con keepalive ping. */
+    @Synchronized
     private fun doConnect() {
         if (!shouldConnect) return
 
         if (client == null) {
             client = OkHttpClient.Builder()
-                .connectTimeout(8, TimeUnit.SECONDS)
+                .connectTimeout(5, TimeUnit.SECONDS)
                 .readTimeout(0, TimeUnit.MILLISECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS)
+                .pingInterval(PING_INTERVAL_SEC, TimeUnit.SECONDS)
                 .build()
         }
 
         val builder = Request.Builder().url(serverUrl)
-        if (pin.isNotEmpty()) {
-            builder.header("Authorization", "Bearer $pin")
-        }
-        val request = builder.build()
+        if (pin.isNotEmpty()) builder.header("Authorization", "Bearer $pin")
 
-        webSocket = client?.newWebSocket(request, object : WebSocketListener() {
+        webSocket = client?.newWebSocket(builder.build(), object : WebSocketListener() {
             override fun onOpen(ws: WebSocket, response: Response) {
-                isConnected = true
-                retryCount = 0
-                mainHandler.post {
-                    callback?.onConnectionStatus(true)
+                synchronized(this@TextFocusWatcher) {
+                    if (ws !== webSocket || !shouldConnect) {
+                        ws.close(1000, "Stale socket")
+                        return
+                    }
+                    isConnected = true
+                    retryCount = 0
                 }
+                mainHandler.post { if (shouldConnect) callback?.onConnectionStatus(true) }
             }
 
             override fun onMessage(ws: WebSocket, text: String) {
-                parseMessage(text)
+                if (shouldConnect) parseMessage(text)
+            }
+
+            override fun onClosing(ws: WebSocket, code: Int, reason: String) {
+                ws.close(1000, null)
             }
 
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
-                isConnected = false
-                mainHandler.post {
-                    callback?.onConnectionStatus(false)
-                }
-                scheduleReconnect()
+                handleDrop(ws)
             }
 
             override fun onClosed(ws: WebSocket, code: Int, reason: String) {
-                isConnected = false
-                mainHandler.post {
-                    callback?.onConnectionStatus(false)
-                }
-                if (code != 1000) {
-                    scheduleReconnect()
-                }
+                handleDrop(ws)
             }
         })
     }
 
+    /** Gestiona desconexiones del socket activo y programa backoff acotado a 30s. */
+    @Synchronized
+    private fun handleDrop(ws: WebSocket) {
+        if (ws !== webSocket) return
+        webSocket = null
+        isConnected = false
+        mainHandler.post { callback?.onConnectionStatus(false) }
+        if (!shouldConnect) return
+
+        mainHandler.removeCallbacksAndMessages(null)
+        val delay = minOf(BASE_RECONNECT_MS * (1L shl retryCount.coerceAtMost(4)), MAX_RECONNECT_MS)
+        retryCount++
+        mainHandler.postDelayed({
+            synchronized(this@TextFocusWatcher) {
+                if (shouldConnect && webSocket == null) doConnect()
+            }
+        }, delay)
+    }
+
+    private fun JSONObject?.f(k: String): Float = this?.optDouble(k, 0.0)?.toFloat() ?: 0f
+
+    /** Traduce eventos JSON del Companion a callbacks en el hilo principal. */
     private fun parseMessage(json: String) {
         try {
             val msg = JSONObject(json)
-            val type = msg.optString("type", "")
-
-            if ("focus_changed" == type && msg.optBoolean("is_text_field", false)) {
-                val rect = msg.optJSONObject("rect")
-                var x = 0f
-                var y = 0f
-                var w = 0f
-                var h = 0f
-                if (rect != null) {
-                    x = rect.optDouble("x", 0.0).toFloat()
-                    y = rect.optDouble("y", 0.0).toFloat()
-                    w = rect.optDouble("w", 0.0).toFloat()
-                    h = rect.optDouble("h", 0.0).toFloat()
+            when (msg.optString("type", "")) {
+                "focus_changed" -> if (msg.optBoolean("is_text_field", false)) {
+                    val rect = msg.optJSONObject("rect")
+                    val app = msg.optString("app", "")
+                    mainHandler.post { callback?.onTextFieldFocused(rect.f("x"), rect.f("y"), rect.f("w"), rect.f("h"), app) }
                 }
-                val app = msg.optString("app", "")
-                mainHandler.post {
-                    callback?.onTextFieldFocused(x, y, w, h, app)
+                "cursor_pos" -> {
+                    val cx = msg.optDouble("x", 0.0).toFloat()
+                    val cy = msg.optDouble("y", 0.0).toFloat()
+                    mainHandler.post { callback?.onCursorPos(cx, cy) }
                 }
-            } else if ("cursor_pos" == type) {
-                val cx = msg.optDouble("x", 0.0).toFloat()
-                val cy = msg.optDouble("y", 0.0).toFloat()
-                mainHandler.post {
-                    callback?.onCursorPos(cx, cy)
-                }
-            } else if ("focus_cleared" == type) {
-                mainHandler.post {
-                    callback?.onTextFieldCleared()
-                }
-            } else if ("hover_element" == type) {
-                val element = msg.optString("element", "none")
-                val rect = msg.optJSONObject("rect")
-                var x = 0f
-                var y = 0f
-                var w = 0f
-                var h = 0f
-                if (rect != null) {
-                    x = rect.optDouble("x", 0.0).toFloat()
-                    y = rect.optDouble("y", 0.0).toFloat()
-                    w = rect.optDouble("w", 0.0).toFloat()
-                    h = rect.optDouble("h", 0.0).toFloat()
-                }
-                val snap = msg.optJSONObject("snap")
-                val hasSnap = snap != null
-                val sx = if (hasSnap) snap!!.optDouble("x", 0.0).toFloat() else 0f
-                val sy = if (hasSnap) snap!!.optDouble("y", 0.0).toFloat() else 0f
-                val app = msg.optString("app", "")
-
-                mainHandler.post {
-                    callback?.onHoverElement(element, x, y, w, h, sx, sy, hasSnap, app)
+                "focus_cleared" -> mainHandler.post { callback?.onTextFieldCleared() }
+                "hover_element" -> {
+                    val element = msg.optString("element", "none")
+                    val rect = msg.optJSONObject("rect")
+                    val snap = msg.optJSONObject("snap")
+                    val app = msg.optString("app", "")
+                    mainHandler.post {
+                        callback?.onHoverElement(
+                            element, rect.f("x"), rect.f("y"), rect.f("w"), rect.f("h"),
+                            snap.f("x"), snap.f("y"), snap != null, app
+                        )
+                    }
                 }
             }
-        } catch (ignored: Exception) {
-        }
-    }
-
-    private fun scheduleReconnect() {
-        if (!shouldConnect || retryCount >= MAX_RETRIES) return
-        val delay = RECONNECT_DELAY_MS * (1L shl retryCount)
-        retryCount++
-        mainHandler.postDelayed({ doConnect() }, delay)
-    }
-
-    companion object {
-        const val DEFAULT_PORT = 8765
-        private const val RECONNECT_DELAY_MS = 5000L
-        private const val MAX_RETRIES = 10
+        } catch (_: Exception) {}
     }
 }
